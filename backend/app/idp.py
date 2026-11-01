@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
+from authlib.integrations.base_client import OAuthError
 from authlib.integrations.starlette_client import OAuth
 from starlette.requests import Request
 from starlette.responses import Response
@@ -15,7 +16,7 @@ client = oauth.register(
     server_metadata_url=settings.oidc_metadata_url,
     client_id=settings.oidc_client_id,
     client_secret=settings.oidc_client_secret,
-    client_kwargs={"scope": "openid profile email", "code_challenge_method": "S256"},
+    client_kwargs={"scope": settings.oidc_scope, "code_challenge_method": "S256"},
 )
 
 
@@ -25,6 +26,7 @@ class Identity:
     username: str
     email: str | None
     display_name: str
+    # Values of the configured roles claim (IdP groups or Entra app roles).
     groups: list[str]
     refresh_token: str
     id_token: str
@@ -42,17 +44,23 @@ async def complete_login(request: Request) -> Identity:
         username=claims["preferred_username"],
         email=claims.get("email"),
         display_name=claims.get("name") or claims["preferred_username"],
-        groups=claims.get("groups", []),
+        groups=claims.get(settings.oidc_roles_claim, []),
         refresh_token=token["refresh_token"],
         id_token=token["id_token"],
     )
 
 
 async def refresh(refresh_token: str) -> tuple[list[str], str]:
-    """Return the user's current groups and a new refresh token."""
+    """Return the user's current groups or roles and a new refresh token.
+
+    They are read from the refreshed, signature-checked ID token, because Entra ID's userinfo
+    endpoint does not return app roles.
+    """
     token = await client.fetch_access_token(grant_type="refresh_token", refresh_token=refresh_token)
-    userinfo = await client.userinfo(token=token)
-    return userinfo.get("groups", []), token["refresh_token"]
+    claims = await client.parse_id_token(token, nonce=None)
+    if claims is None:
+        raise OAuthError(error="missing_id_token")
+    return claims.get(settings.oidc_roles_claim, []), token.get("refresh_token", refresh_token)
 
 
 async def logout_url(id_token: str | None) -> str:

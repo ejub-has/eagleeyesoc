@@ -9,11 +9,16 @@ class Settings(BaseSettings):
     oidc_metadata_url: str = "http://localhost:8180/realms/casemgr/.well-known/openid-configuration"
     oidc_client_id: str = "casemgr"
     oidc_client_secret: str
+    # Entra ID only issues refresh tokens when offline_access is requested.
+    oidc_scope: str = "openid profile email"
+    # ID token claim listing the user's casemgr-<tenant>-<grant> names: "groups" for Keycloak,
+    # "roles" for Entra ID app roles.
+    oidc_roles_claim: str = "groups"
     # Signs the short-lived cookie that carries OIDC state between login and callback.
     secret_key: str
     session_idle_minutes: int = 30
     session_max_hours: int = 12
-    # How often a session re-reads the user's groups from the IdP.
+    # How often a session re-reads the user's groups or app roles from the IdP.
     group_sync_minutes: int = 5
     # Email intake: imaps://user:password@host:port/MAILBOX, polled by the email_intake job.
     imap_url: str | None = None

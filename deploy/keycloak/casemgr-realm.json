@@ -1,0 +1,188 @@
+{
+  "realm": "casemgr",
+  "enabled": true,
+  "sslRequired": "external",
+  "bruteForceProtected": true,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA256",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "browserFlow": "browser-mfa",
+  "authenticationFlows": [
+    {
+      "alias": "browser-mfa",
+      "description": "Browser login that always requires a one-time password",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "authenticatorFlow": true,
+          "flowAlias": "browser-mfa-forms",
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "browser-mfa-forms",
+      "description": "Password and one-time password",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "authenticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "name": "casemgr-platform_admin"
+    },
+    {
+      "name": "casemgr-detect-respond-admin"
+    },
+    {
+      "name": "casemgr-detect-respond-ir_lead"
+    },
+    {
+      "name": "casemgr-detect-respond-analyst"
+    },
+    {
+      "name": "casemgr-detect-respond-legal"
+    },
+    {
+      "name": "casemgr-detect-respond-executive"
+    },
+    {
+      "name": "casemgr-detect-respond-auditor"
+    },
+    {
+      "name": "casemgr-detect-respond-restricted_case"
+    },
+    {
+      "name": "casemgr-detect-respond-malware:read"
+    },
+    {
+      "name": "casemgr-insider-threat-admin"
+    },
+    {
+      "name": "casemgr-insider-threat-ir_lead"
+    },
+    {
+      "name": "casemgr-insider-threat-analyst"
+    },
+    {
+      "name": "casemgr-insider-threat-legal"
+    },
+    {
+      "name": "casemgr-insider-threat-executive"
+    },
+    {
+      "name": "casemgr-insider-threat-auditor"
+    },
+    {
+      "name": "casemgr-insider-threat-restricted_case"
+    },
+    {
+      "name": "casemgr-insider-threat-malware:read"
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "casemgr",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "dev-only-client-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8080/api/auth/callback",
+        "https://localhost:8443/api/auth/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:8080",
+        "https://localhost:8443"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:8080##https://localhost:8443"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "full.path": "false",
+            "claim.name": "groups",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "analyst",
+      "email": "analyst@example.test",
+      "firstName": "Dev",
+      "lastName": "Analyst",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "analyst",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/casemgr-detect-respond-analyst"
+      ]
+    },
+    {
+      "username": "admin",
+      "email": "admin@example.test",
+      "firstName": "Dev",
+      "lastName": "Admin",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/casemgr-platform_admin",
+        "/casemgr-detect-respond-admin",
+        "/casemgr-insider-threat-admin"
+      ]
+    }
+  ]
+}

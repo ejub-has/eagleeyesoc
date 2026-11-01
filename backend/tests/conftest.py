@@ -1,0 +1,228 @@
+import os
+import secrets
+import time
+from collections.abc import AsyncIterator, Awaitable, Callable
+from dataclasses import dataclass
+from uuid import UUID
+
+import httpx2
+import pytest
+from alembic import command
+from alembic.config import Config
+from httpx2 import ASGITransport, AsyncClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from testcontainers.community.postgres import PostgresContainer
+from testcontainers.core.container import DockerContainer
+
+APP_ROLE = "casemgr_app"
+_postgres = PostgresContainer("postgres:18.6", driver="asyncpg")
+_s3 = (
+    DockerContainer("chrislusf/seaweedfs:4.51")
+    .with_command("server -s3 -dir=/data")
+    .with_exposed_ports(8333)
+)
+
+
+def _start_s3() -> str:
+    _s3.start()
+    url = f"http://{_s3.get_container_host_ip()}:{_s3.get_exposed_port(8333)}"
+    deadline = time.monotonic() + 60
+    while True:
+        try:
+            if httpx2.get(f"{url}/healthz", timeout=2).status_code == 200:
+                return url
+        except httpx2.TransportError:
+            pass
+        if time.monotonic() > deadline:
+            raise RuntimeError("S3 test server did not start")
+        time.sleep(0.5)
+
+
+def pytest_sessionstart(session: pytest.Session) -> None:
+    # Runs before collection so test modules can import the app, which reads settings.
+    _postgres.start()
+    _postgres.exec(
+        ["psql", "-U", _postgres.username, "-d", _postgres.dbname, "-c",
+         f"CREATE ROLE {APP_ROLE} LOGIN PASSWORD '{APP_ROLE}'; "
+         "CREATE ROLE casemgr_search NOLOGIN BYPASSRLS"]
+    )  # fmt: skip
+    owner_url = _postgres.get_connection_url()
+    os.environ.update(
+        CASEMGR_MIGRATION_DATABASE_URL=owner_url,
+        CASEMGR_DATABASE_URL=owner_url.replace(
+            f"{_postgres.username}:{_postgres.password}", f"{APP_ROLE}:{APP_ROLE}"
+        ),
+        CASEMGR_OIDC_METADATA_URL="https://idp.test/.well-known/openid-configuration",
+        CASEMGR_OIDC_CLIENT_SECRET="test-client-secret",
+        CASEMGR_SECRET_KEY="test-secret-key",
+        CASEMGR_S3_ENDPOINT_URL=_start_s3(),
+        CASEMGR_S3_BUCKET="evidence-test",
+        CASEMGR_S3_ACCESS_KEY="test",
+        CASEMGR_S3_SECRET_KEY="test",
+    )
+    command.upgrade(Config("alembic.ini", attributes={"configure_logger": False}), "head")
+    from app import storage
+
+    storage.ensure_bucket()
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    _postgres.stop()
+    _s3.stop()
+
+
+@pytest.fixture(scope="session")
+async def owner() -> AsyncIterator[AsyncEngine]:
+    """Engine connected as the schema owner (a superuser), for setup and inspection."""
+    engine = create_async_engine(os.environ["CASEMGR_MIGRATION_DATABASE_URL"])
+    yield engine
+    await engine.dispose()
+
+
+def new_client(**kwargs: object) -> AsyncClient:
+    from app.main import app
+
+    return AsyncClient(transport=ASGITransport(app=app), base_url="https://test", **kwargs)  # pyright: ignore[reportArgumentType]
+
+
+@pytest.fixture
+async def client() -> AsyncIterator[AsyncClient]:
+    async with new_client() as c:
+        yield c
+
+
+@dataclass
+class SignedIn:
+    id: UUID
+    client: AsyncClient
+
+
+MakeUser = Callable[..., Awaitable[SignedIn]]
+
+
+@pytest.fixture
+async def make_user(owner: AsyncEngine) -> AsyncIterator[MakeUser]:
+    """Create a user with grants per tenant slug and return a client signed in as them."""
+    from app.auth import SESSION_COOKIE, hash_secret
+
+    clients: list[AsyncClient] = []
+
+    async def make(
+        grants: dict[str, list[str]] | None = None,
+        platform_admin: bool = False,
+        username: str = "tester",
+        email: str | None = None,
+    ):
+        token = secrets.token_urlsafe(16)
+        async with owner.begin() as conn:
+            user_id = await conn.scalar(
+                text(
+                    "INSERT INTO users (subject, username, email, display_name, is_platform_admin) "
+                    "VALUES (:sub, :username, :email, 'Test User', :admin) RETURNING id"
+                ),
+                {
+                    "sub": secrets.token_hex(8),
+                    "username": username,
+                    "email": email,
+                    "admin": platform_admin,
+                },
+            )
+            for slug, names in (grants or {}).items():
+                for name in names:
+                    await conn.execute(
+                        text(
+                            "INSERT INTO memberships SELECT :user_id, id, :name "
+                            "FROM tenants WHERE slug = :slug"
+                        ),
+                        {"user_id": user_id, "name": name, "slug": slug},
+                    )
+            await conn.execute(
+                text(
+                    "INSERT INTO sessions (token_hash, user_id, refresh_token, id_token) "
+                    "VALUES (:hash, :user_id, 'refresh-1', 'id-token-1')"
+                ),
+                {"hash": hash_secret(token), "user_id": user_id},
+            )
+        client = new_client(cookies={SESSION_COOKIE: token})
+        clients.append(client)
+        return SignedIn(user_id, client)
+
+    yield make
+    for c in clients:
+        await c.aclose()
+
+
+async def audit_actions(owner: AsyncEngine, actor: str) -> list[str]:
+    async with owner.connect() as conn:
+        rows = await conn.scalars(
+            text("SELECT action FROM audit_log WHERE actor = :actor ORDER BY id"), {"actor": actor}
+        )
+        return list(rows)
+
+
+async def new_tenant(owner: AsyncEngine) -> str:
+    async with owner.begin() as conn:
+        slug = await conn.scalar(
+            text(
+                "INSERT INTO tenants (slug, name) "
+                "VALUES ('t-' || substr(md5(random()::text), 1, 8), 'Test') RETURNING slug"
+            )
+        )
+    assert slug is not None
+    return slug
+
+
+@pytest.fixture
+async def tenant(owner: AsyncEngine) -> str:
+    """A fresh tenant, so tests don't see each other's cases or configuration."""
+    return await new_tenant(owner)
+
+
+MakeToken = Callable[..., Awaitable[str]]
+
+
+@pytest.fixture
+def make_token(owner: AsyncEngine) -> MakeToken:
+    """Create an API token in a tenant directly and return its secret."""
+    from app.auth import hash_secret
+
+    async def make(slug: str, scopes: list[str]) -> str:
+        raw = f"cmt_{secrets.token_urlsafe(16)}"
+        async with owner.begin() as conn:
+            creator = await conn.scalar(
+                text(
+                    "INSERT INTO users (subject, username, display_name) "
+                    "VALUES (:sub, 'token-owner', 'Token Owner') RETURNING id"
+                ),
+                {"sub": secrets.token_hex(8)},
+            )
+            await conn.execute(
+                text(
+                    "INSERT INTO api_tokens "
+                    "(tenant_id, name, prefix, token_hash, scopes, created_by, expires_at) "
+                    "SELECT id, 'test', :prefix, :hash, :scopes, :creator, "
+                    "now() + interval '1 day' FROM tenants WHERE slug = :slug"
+                ),
+                {"prefix": raw[:12], "hash": hash_secret(raw), "scopes": scopes,
+                 "creator": creator, "slug": slug},
+            )  # fmt: skip
+        return raw
+
+    return make
+
+
+async def close_case(
+    client: AsyncClient, tenant: str, number: int, resolution: str = "benign"
+) -> dict:
+    """Waive any open tasks (the closing gate requires it), then close the case."""
+    url = f"/api/tenants/{tenant}/cases/{number}"
+    for task in (await client.get(url)).json()["tasks"]:
+        if task["status"] not in ("done", "waived"):
+            response = await client.patch(
+                f"{url}/tasks/{task['id']}", json={"status": "waived", "waive_reason": "test"}
+            )
+            assert response.status_code == 200, response.text
+    response = await client.patch(url, json={"state": "closed", "resolution": resolution})
+    assert response.status_code == 200, response.text
+    return response.json()

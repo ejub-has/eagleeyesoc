@@ -1,0 +1,10 @@
+{
+  "detection_id": "ldt:0123456789abcdef:4294967296",
+  "title": "Suspicious PowerShell execution on WS-0142",
+  "severity": "High",
+  "host": "WS-0142",
+  "user": "jdoe",
+  "tactic": "Execution",
+  "technique": "T1059.001",
+  "falcon_link": "https://falcon.us-2.crowdstrike.com/activity-v2/detections"
+}

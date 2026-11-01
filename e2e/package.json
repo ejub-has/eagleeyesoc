@@ -1,0 +1,13 @@
+{
+  "name": "casemgr-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.6",
+    "otpauth": "^9.5.2"
+  }
+}

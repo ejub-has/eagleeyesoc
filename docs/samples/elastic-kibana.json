@@ -1,0 +1,8 @@
+{
+  "title": "Multiple failed logins followed by success",
+  "alert_id": "9f1c2b7e-0a54-4e55-8f0a-6a1d2f3b4c5d",
+  "rule_id": "b2d7c1a0-1111-4222-8333-444455556666",
+  "severity": "medium",
+  "reason": "12 events matched in the last 5 minutes for user jdoe",
+  "rule_url": "https://kibana.example.test/app/security/rules/id/b2d7c1a0-1111-4222-8333-444455556666"
+}

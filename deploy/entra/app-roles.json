@@ -1,0 +1,172 @@
+[
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "Manage tenants across Eagle Eye",
+    "displayName": "Eagle Eye platform admin",
+    "id": "f4b5bb98-d3b0-57af-94ae-d3cad3d3dab6",
+    "isEnabled": true,
+    "value": "casemgr-platform_admin"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "detect-respond: Administer the tenant: configuration, API tokens, legal holds, all case work",
+    "displayName": "detect-respond admin",
+    "id": "62e5e14b-64d7-5ea1-b7ca-44b5a215cb20",
+    "isEnabled": true,
+    "value": "casemgr-detect-respond-admin"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "detect-respond: Lead incidents: case work and legal holds",
+    "displayName": "detect-respond ir_lead",
+    "id": "f343198e-6613-5d1f-95d2-32206d3d7ff8",
+    "isEnabled": true,
+    "value": "casemgr-detect-respond-ir_lead"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "detect-respond: Work cases",
+    "displayName": "detect-respond analyst",
+    "id": "a97fb535-f714-5cdb-9dc7-1a82e35602c3",
+    "isEnabled": true,
+    "value": "casemgr-detect-respond-analyst"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "detect-respond: Read cases and manage legal holds and privilege",
+    "displayName": "detect-respond legal",
+    "id": "3c3ab614-6521-57fa-82ac-c4844423a14e",
+    "isEnabled": true,
+    "value": "casemgr-detect-respond-legal"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "detect-respond: Read-only access to cases",
+    "displayName": "detect-respond executive",
+    "id": "33dd45ca-f178-5a96-b477-73198159afe6",
+    "isEnabled": true,
+    "value": "casemgr-detect-respond-executive"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "detect-respond: Read-only access to cases for audit",
+    "displayName": "detect-respond auditor",
+    "id": "105dec79-1f72-5524-8123-8ab89b0ded94",
+    "isEnabled": true,
+    "value": "casemgr-detect-respond-auditor"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "detect-respond: See restricted cases (flag, combine with a role)",
+    "displayName": "detect-respond restricted_case",
+    "id": "4e707420-303e-5930-a67e-0578a7070ab8",
+    "isEnabled": true,
+    "value": "casemgr-detect-respond-restricted_case"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "detect-respond: Download quarantined malware samples (flag, combine with a role)",
+    "displayName": "detect-respond malware:read",
+    "id": "52cd9171-8d63-5274-98de-5a0c30213c8d",
+    "isEnabled": true,
+    "value": "casemgr-detect-respond-malware:read"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "insider-threat: Administer the tenant: configuration, API tokens, legal holds, all case work",
+    "displayName": "insider-threat admin",
+    "id": "ae149f06-fa6b-5afa-9d29-15270fcfa719",
+    "isEnabled": true,
+    "value": "casemgr-insider-threat-admin"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "insider-threat: Lead incidents: case work and legal holds",
+    "displayName": "insider-threat ir_lead",
+    "id": "87f749be-75a2-5348-bdeb-2196592557c2",
+    "isEnabled": true,
+    "value": "casemgr-insider-threat-ir_lead"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "insider-threat: Work cases",
+    "displayName": "insider-threat analyst",
+    "id": "64774cd7-504e-556a-9fd4-9782b1068752",
+    "isEnabled": true,
+    "value": "casemgr-insider-threat-analyst"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "insider-threat: Read cases and manage legal holds and privilege",
+    "displayName": "insider-threat legal",
+    "id": "4ef9ad9b-5988-5387-88b6-43fc3aa950ad",
+    "isEnabled": true,
+    "value": "casemgr-insider-threat-legal"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "insider-threat: Read-only access to cases",
+    "displayName": "insider-threat executive",
+    "id": "62308182-1911-5d65-a263-46eb612de869",
+    "isEnabled": true,
+    "value": "casemgr-insider-threat-executive"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "insider-threat: Read-only access to cases for audit",
+    "displayName": "insider-threat auditor",
+    "id": "c0d74e91-623b-5c3b-8a75-754d1da5fda6",
+    "isEnabled": true,
+    "value": "casemgr-insider-threat-auditor"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "insider-threat: See restricted cases (flag, combine with a role)",
+    "displayName": "insider-threat restricted_case",
+    "id": "c5e3f825-42fb-53e5-9b2d-e3f0066bb707",
+    "isEnabled": true,
+    "value": "casemgr-insider-threat-restricted_case"
+  },
+  {
+    "allowedMemberTypes": [
+      "User"
+    ],
+    "description": "insider-threat: Download quarantined malware samples (flag, combine with a role)",
+    "displayName": "insider-threat malware:read",
+    "id": "5e7df625-1c55-5951-9a81-13fecf5a903b",
+    "isEnabled": true,
+    "value": "casemgr-insider-threat-malware:read"
+  }
+]

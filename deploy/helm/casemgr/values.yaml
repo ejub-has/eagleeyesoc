@@ -29,6 +29,8 @@ jobResources:
 config:
   OIDC_METADATA_URL: https://idp.example.com/realms/casemgr/.well-known/openid-configuration
   OIDC_CLIENT_ID: casemgr
+  # Entra ID (docs/entra-id.md): OIDC_SCOPE: openid profile email offline_access
+  # and OIDC_ROLES_CLAIM: roles.
   SMTP_HOST: smtp.example.com
   MAIL_FROM: casemgr@example.com
   S3_REGION: us-east-1

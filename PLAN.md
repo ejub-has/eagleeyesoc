@@ -181,8 +181,10 @@ README.md
 
 ### Phase 12 - Entra ID SSO (priority 1)
 
-- [ ] Roles from Entra App Roles (`roles` claim; decided) mapped to tenant roles; refresh-time role re-sync verified against Entra
-- [ ] Setup doc: new Entra tenant, app registration, MFA enforcement, break-glass accounts
+- [x] Roles from Entra App Roles (`roles` claim) via `CASEMGR_OIDC_ROLES_CLAIM`; `CASEMGR_OIDC_SCOPE` adds `offline_access` for Entra refresh tokens
+- [x] Re-sync reads the refreshed, signature-checked ID token (Entra's userinfo has no roles); a refresh without an ID token ends the session; unit tests cover both IdP shapes
+- [x] App role definitions in `deploy/entra/app-roles.json`; setup doc `docs/entra-id.md` (tenant, MFA, break-glass, app registration, assignments, settings)
+- [ ] Verified against the live Entra tenant using the checklist in `docs/entra-id.md`
 
 ### Phase 13 - Azure proof of value
 

@@ -40,15 +40,15 @@ kubectl label namespace casemgr pod-security.kubernetes.io/enforce=restricted
 
 ## 2. Identity provider
 
-casemgr signs users in only through OIDC (authorization code flow with PKCE).
+casemgr signs users in only through OIDC (authorization code flow with PKCE). For Entra ID with app roles, follow `docs/entra-id.md` instead of steps 2 and 3.
 
 1. Create a confidential client `casemgr` with the redirect URI `https://<host>/api/auth/callback` and the post-logout redirect URI `https://<host>`.
-2. Add a `groups` claim to the ID token and userinfo, containing group names (not paths).
+2. Add a `groups` claim to the ID token, containing group names (not paths). The claim name is set by `CASEMGR_OIDC_ROLES_CLAIM` (default `groups`).
 3. Create groups named `casemgr-<tenant>-<role>`, for example `casemgr-detect-respond-analyst`. The roles are `admin`, `ir_lead`, `analyst`, `legal`, `executive`, and `auditor`. The flags `restricted_case` and `malware:read` are granted the same way, and `casemgr-platform_admin` makes a platform administrator.
 4. Require MFA for every login. In Keycloak, make the browser flow's OTP step required. In Entra ID or Okta, use a conditional access or sign-on policy for the app.
 5. Create two break-glass accounts in the IdP itself, not federated from AD. Store their credentials offline, give them a hardware MFA token, and alert on every use.
 
-The app re-reads each user's groups through the refresh token every `GROUP_SYNC_MINUTES` (default 5), so removing a user from a group takes effect within that time.
+The app re-reads each user's groups from a refreshed ID token every `GROUP_SYNC_MINUTES` (default 5), so removing a user from a group takes effect within that time.
 
 ## 3. Secrets
 

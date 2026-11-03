@@ -99,7 +99,7 @@ jobs:
           BASE_URL: https://localhost:8443
       - run: bash deploy/kind/restore-drill.sh
       - if: failure()
-        run: kubectl get pods -A && kubectl -n casemgr logs deploy/casemgr-backend --tail=200
+        run: kubectl get pods -A && kubectl -n casemgr logs deploy/casemgr-backend --tail=200 && kubectl -n casemgr-dev logs deploy/seaweedfs --tail=200
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

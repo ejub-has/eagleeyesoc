@@ -6,8 +6,10 @@ cd "$(dirname "$0")/../.."
 export PATH="$PWD/.tools:$PATH" MSYS_NO_PATHCONV=1
 
 kind create cluster --config deploy/kind/cluster.yaml
-# Keep the node from using the whole machine.
-docker update --cpus "${KIND_CPUS:-4}" casemgr-control-plane
+# Keep the node from using the whole machine (at most 4 CPUs, fewer on smaller hosts such as
+# 2-CPU CI runners for private repositories).
+cpus=$(nproc)
+docker update --cpus "${KIND_CPUS:-$((cpus < 4 ? cpus : 4))}" casemgr-control-plane
 
 for component in backend frontend; do
   docker build -t "casemgr-$component:kind" "$component"

@@ -120,6 +120,24 @@ jobs:
           name: playwright-traces-kind
           path: e2e/test-results
 
+  # Render both charts with every values file, including Azure (not exercised by kind).
+  charts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+      - run: |
+          helm lint deploy/helm/casemgr deploy/helm/casemgr-db
+          helm template t deploy/helm/casemgr -f deploy/kind/values.yaml > /dev/null
+          helm template t deploy/helm/casemgr-db -f deploy/kind/db-values.yaml > /dev/null
+          helm template casemgr deploy/helm/casemgr -f deploy/azure/values.yaml \
+            --set workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
+          helm template casemgr-db deploy/helm/casemgr-db -f deploy/azure/db-values.yaml \
+            --set workloadIdentity.clientId=00000000-0000-0000-0000-000000000000 \
+            --set backup.destinationPath=https://example.blob.core.windows.net/backups/
+
   sast:
     runs-on: ubuntu-latest
     container: semgrep/semgrep:1.183.0

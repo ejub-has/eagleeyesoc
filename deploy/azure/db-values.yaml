@@ -1,0 +1,18 @@
+# casemgr-db chart values for the Azure proof of value: one instance sized for two small
+# nodes, base backups and WAL to the backups container. install.sh adds the account URL
+# and workload identity.
+instances: 1
+
+storage:
+  size: 10Gi
+  # AKS default class: Azure managed disks, encrypted at rest.
+  storageClass: managed-csi
+
+resources:
+  requests: { cpu: 250m, memory: 1Gi }
+  limits: { memory: 1Gi }
+
+backup:
+  provider: azure
+  encryption: ""
+  retention: 14d

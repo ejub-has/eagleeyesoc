@@ -77,6 +77,8 @@ gateway:
   # Secret holding the TLS certificate. With clusterIssuer set, cert-manager issues it.
   tlsSecret: casemgr-tls
   clusterIssuer: letsencrypt
+  # Add a port 80 listener for ACME HTTP-01 challenges (issuers without DNS-01).
+  http01: false
   # Optional EnvoyProxy (same namespace) with settings for this Gateway's Envoy deployment and service.
   envoyProxy: ""
   # API requests per second each Envoy replica lets through before answering 429.

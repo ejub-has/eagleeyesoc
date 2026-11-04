@@ -1,0 +1,6 @@
+# Copy to backend.hcl (git-ignored) and fill in from docs/azure.md, step 2.
+resource_group_name  = "rg-eagleeye-tfstate"
+storage_account_name = "<state storage account>"
+container_name       = "tfstate"
+key                  = "pov.tfstate"
+use_azuread_auth     = true

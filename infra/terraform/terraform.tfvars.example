@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars (git-ignored).
+subscription_id = "<subscription id>"
+# api_server_authorized_ip_ranges = ["<your public IP>/32"]

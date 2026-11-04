@@ -39,3 +39,12 @@ Thumbs.db
 
 # Local tool binaries (kind, helm)
 .tools/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+terraform.tfvars
+backend.hcl

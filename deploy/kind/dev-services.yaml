@@ -98,7 +98,8 @@ spec:
         - name: azurite
           securityContext: { allowPrivilegeEscalation: false }
           image: mcr.microsoft.com/azure-storage/azurite:3.35.0
-          command: [azurite-blob, --blobHost, 0.0.0.0, --location, /data, --skipApiVersionCheck, --loose]
+          # Path-style URLs only: otherwise the dotted service name is read as an account name.
+          command: [azurite-blob, --blobHost, 0.0.0.0, --location, /data, --skipApiVersionCheck, --loose, --disableProductStyleUrl]
           readinessProbe:
             tcpSocket: { port: 10000 }
           volumeMounts:

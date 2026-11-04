@@ -31,12 +31,15 @@ for secret in casemgr casemgr-db-runtime casemgr-backup-s3 casemgr-tls; do
 done
 
 # The restored cluster archives to its own folder so it never overwrites the source's backups.
+# One instance and one backend replica: the drill checks the data, and a second full copy
+# of the stack does not fit a 2-CPU CI runner.
 helm install casemgr-db deploy/helm/casemgr-db -n "$NS" -f deploy/kind/db-values.yaml \
-  --set recovery.enabled=true --set backup.serverName="casemgr-db-restore-$start"
+  --set recovery.enabled=true --set backup.serverName="casemgr-db-restore-$start" --set instances=1
 kubectl -n "$NS" wait cluster/casemgr-db --for=condition=Ready --timeout=60m
 # The drill copy is reached only from inside the cluster, so its Gateway gets no node port.
 helm install casemgr deploy/helm/casemgr -n "$NS" -f deploy/kind/values.yaml \
-  --set gateway.envoyProxy= --set jobs=null --wait --timeout 15m
+  --set gateway.envoyProxy= --set jobs=null --set backend.replicas=1 --set frontend.replicas=1 \
+  --wait --timeout 15m
 
 restored_counts=$(psql "$NS" "$COUNTS")
 kubectl -n "$NS" exec deploy/casemgr-backend -- python -m app.jobs audit_verify

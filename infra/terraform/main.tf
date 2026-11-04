@@ -66,11 +66,12 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   azure_active_directory_role_based_access_control {
+    tenant_id          = data.azurerm_client_config.current.tenant_id
     azure_rbac_enabled = true
   }
 
   api_server_access_profile {
-    authorized_ip_ranges = var.api_server_authorized_ip_ranges
+    authorized_ip_ranges = var.admin_ip_ranges
   }
 
   network_profile {
@@ -98,6 +99,8 @@ resource "azurerm_role_assignment" "aks_admin" {
 
 # Evidence and database backups. Shared keys are off: access is through Entra ID only, and
 # browsers upload with user delegation SAS URLs.
+# Queue logging does not apply: no queues are used, and v5 removed queue_properties.
+# nosemgrep: terraform.azure.security.storage.storage-queue-services-logging.storage-queue-services-logging
 resource "azurerm_storage_account" "main" {
   name                            = "st${local.compact}"
   resource_group_name             = azurerm_resource_group.main.name
@@ -150,9 +153,15 @@ resource "azurerm_key_vault" "main" {
   sku_name                   = "standard"
   rbac_authorization_enabled = true
   soft_delete_retention_days = 7
-  # Off so the proof of value can be torn down and recreated; turn on for production.
-  purge_protection_enabled = false
-  tags                     = local.tags
+  purge_protection_enabled   = true
+  tags                       = local.tags
+
+  # Only Terraform (control plane) and admins from listed addresses reach the secrets.
+  network_acls {
+    default_action = "Deny"
+    bypass         = "AzureServices"
+    ip_rules       = var.admin_ip_ranges
+  }
 }
 
 resource "azurerm_role_assignment" "admin_secrets" {

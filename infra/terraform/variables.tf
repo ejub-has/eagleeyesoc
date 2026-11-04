@@ -27,8 +27,8 @@ variable "node_count" {
   default     = 2
 }
 
-variable "api_server_authorized_ip_ranges" {
-  description = "CIDRs allowed to reach the Kubernetes API. Empty allows any address (access still needs Entra ID)."
+variable "admin_ip_ranges" {
+  description = "Admin CIDRs allowed to reach Key Vault secrets and the Kubernetes API. Empty: Key Vault data is unreachable and the API accepts any address (still Entra ID authenticated)."
   type        = list(string)
   default     = []
 }

@@ -9,7 +9,7 @@ Terraform in `infra/terraform` creates the proof-of-value environment in its own
 | AKS, Free tier, 2 x `Standard_D2as_v5`, Azure Linux | Runs the Helm charts. Entra ID RBAC with local accounts off, Cilium network policy, workload identity, automatic patch and node image upgrades |
 | Public IP with DNS label | Envoy Gateway address; hostname `<name>-<suffix>.<region>.cloudapp.azure.com` |
 | Storage account (shared keys off) | `evidence` and `backups` containers, versioning, 30-day soft delete, CORS for browser uploads |
-| Key Vault (RBAC) | Secrets for the `casemgr` Kubernetes Secret |
+| Key Vault (RBAC, purge protection, deny by default) | Secrets for the `casemgr` Kubernetes Secret, reachable only from `admin_ip_ranges` |
 | Two user-assigned identities | Workload identities for the backend (evidence) and the database cluster (backups) |
 
 Approximate monthly cost: about USD 125 for the two nodes and their disks, USD 20 for the load balancer and IP, and a few dollars for storage and Key Vault. Check with the Azure pricing calculator for your region. Stop the cluster when idle (`az aks stop`) to pay only for storage.
@@ -56,7 +56,7 @@ In the GitHub repository, create the environment `pov` (Settings, Environments) 
 | `TF_STATE_RESOURCE_GROUP` | `rg-eagleeye-tfstate` |
 | `TF_STATE_STORAGE_ACCOUNT` | `$sa` |
 | `CLUSTER_ADMIN_OBJECT_IDS` | JSON list with your object ID, for example `["<az ad signed-in-user show --query id -o tsv>"]` |
-| `API_SERVER_AUTHORIZED_IP_RANGES` | optional JSON list, for example `["203.0.113.10/32"]`; GitHub-hosted runners do not need API access |
+| `ADMIN_IP_RANGES` | JSON list of your public IP, for example `["203.0.113.10/32"]`; limits the Kubernetes API and Key Vault secrets to it. GitHub-hosted runners do not need either |
 
 ## 4. Apply
 
@@ -74,4 +74,4 @@ kubectl get nodes
 
 ## 6. Tear down
 
-`terraform destroy`, or delete the resource group. Key Vault purge protection is off for the proof of value, so the names can be reused after the 7-day soft-delete period (or `az keyvault purge`).
+`terraform destroy`, or delete the resource group. Key Vault purge protection keeps the deleted vault for 7 days; a new apply gets a new random name, so this does not block recreating the environment.

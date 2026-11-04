@@ -56,7 +56,7 @@ In the GitHub repository, create the environment `pov` (Settings, Environments) 
 | `TF_STATE_RESOURCE_GROUP` | `rg-eagleeye-tfstate` |
 | `TF_STATE_STORAGE_ACCOUNT` | `$sa` |
 | `CLUSTER_ADMIN_OBJECT_IDS` | JSON list with your object ID, for example `["<az ad signed-in-user show --query id -o tsv>"]` |
-| `ADMIN_IP_RANGES` | JSON list of your public IP, for example `["203.0.113.10/32"]`; limits the Kubernetes API and Key Vault secrets to it. GitHub-hosted runners do not need either |
+| `ADMIN_IP_RANGES` | Required. JSON list of your public IP, for example `["203.0.113.10/32"]`; only these addresses reach the Kubernetes API and Key Vault secrets. GitHub-hosted runners need neither |
 
 ## 4. Apply
 

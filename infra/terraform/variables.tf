@@ -28,9 +28,13 @@ variable "node_count" {
 }
 
 variable "admin_ip_ranges" {
-  description = "Admin CIDRs allowed to reach Key Vault secrets and the Kubernetes API. Empty: Key Vault data is unreachable and the API accepts any address (still Entra ID authenticated)."
+  description = "Admin CIDRs (for example your public IP as x.x.x.x/32) allowed to reach the Kubernetes API and Key Vault secrets."
   type        = list(string)
-  default     = []
+
+  validation {
+    condition     = length(var.admin_ip_ranges) > 0
+    error_message = "Set at least one admin CIDR."
+  }
 }
 
 variable "cluster_admin_object_ids" {

@@ -100,7 +100,10 @@ resource "azurerm_role_assignment" "aks_admin" {
 # Evidence and database backups. Shared keys are off: access is through Entra ID only, and
 # browsers upload with user delegation SAS URLs.
 # Queue logging does not apply: no queues are used, and v5 removed queue_properties.
+# The network stays open because browsers upload evidence directly; every request still
+# needs an Entra ID token or a short-lived SAS.
 # nosemgrep: terraform.azure.security.storage.storage-queue-services-logging.storage-queue-services-logging
+#trivy:ignore:AZU-0012
 resource "azurerm_storage_account" "main" {
   name                            = "st${local.compact}"
   resource_group_name             = azurerm_resource_group.main.name

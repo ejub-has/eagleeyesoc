@@ -40,8 +40,8 @@ spec:
             # The Gateway routes /api to the backend; nginx's own /api proxy is for local compose only.
             - name: CASEMGR_API_UPSTREAM
               value: http://{{ .Release.Name }}-backend:8000
-            - name: CASEMGR_S3_PUBLIC_ORIGIN
-              value: {{ .Values.config.S3_PUBLIC_ENDPOINT_URL | quote }}
+            - name: CASEMGR_BLOB_PUBLIC_ORIGIN
+              value: {{ .Values.blobPublicOrigin | quote }}
           livenessProbe:
             httpGet: { path: /, port: http }
           readinessProbe:

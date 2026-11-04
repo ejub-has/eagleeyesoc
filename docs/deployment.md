@@ -15,7 +15,7 @@ Both go in the same namespace. Install the database chart first. `deploy/kind/up
 | Ingress | Gateway API with Envoy Gateway (TLS termination, rate limiting) |
 | Certificates | cert-manager |
 | PostgreSQL | CloudNativePG operator with the Barman Cloud plugin |
-| Object storage | S3 with SSE-KMS and Object Lock; on-premises, Ceph RGW |
+| Object storage | Azure Blob Storage (evidence); backups to Blob or S3 through Barman Cloud |
 | Identity | Keycloak kept separate from corporate AD (so it still works if AD is compromised), or Entra ID / Okta |
 | Secrets | External Secrets Operator backed by Vault or a cloud secret manager |
 | GitOps | Argo CD |
@@ -56,11 +56,11 @@ The charts never create secrets. Provision them with External Secrets Operator (
 
 | Secret | Keys | Used by |
 |---|---|---|
-| `casemgr` | `CASEMGR_OIDC_CLIENT_SECRET`, `CASEMGR_SECRET_KEY` (32+ random bytes), and as needed `CASEMGR_S3_ACCESS_KEY`, `CASEMGR_S3_SECRET_KEY`, `CASEMGR_SMTP_USERNAME`, `CASEMGR_SMTP_PASSWORD`, `CASEMGR_IMAP_URL` | backend, jobs |
+| `casemgr` | `CASEMGR_OIDC_CLIENT_SECRET`, `CASEMGR_SECRET_KEY` (32+ random bytes), and as needed `CASEMGR_BLOB_CONNECTION_STRING` (emulators only), `CASEMGR_SMTP_USERNAME`, `CASEMGR_SMTP_PASSWORD`, `CASEMGR_IMAP_URL` | backend, jobs |
 | `casemgr-db-runtime` | `username` (`casemgr_app`), `password`; type `kubernetes.io/basic-auth` | database chart (creates the role), backend, jobs |
 | backup credentials (`backup.credentialsSecret`) | `ACCESS_KEY_ID`, `ACCESS_SECRET_KEY` | database backups; omit when using IAM roles |
 
-Prefer workload identity (IRSA, Azure Workload Identity, GKE Workload Identity) over static S3 keys. Leave the S3 keys out of `casemgr` and `backup.credentialsSecret` empty to use the pod's role.
+Use Azure workload identity rather than keys: set `workloadIdentity.clientId` for the backend and leave `backup.credentialsSecret` empty to use the pod's identity.
 
 ## 4. Database and least-privilege roles
 
@@ -78,12 +78,12 @@ kubectl -n casemgr wait cluster/casemgr-db --for=condition=Ready --timeout=15m
 
 ## 5. Object storage
 
-Create two buckets, both with default encryption under a customer-managed KMS key and public access blocked:
+Evidence lives in Azure Blob Storage; `infra/terraform` creates the account for the proof of value (`docs/azure.md`). Use an account with shared keys disabled and public blob access off:
 
-- **Evidence** (`config.S3_BUCKET`). The pre-install hook `create_bucket` applies its CORS rule (PUT from `publicUrl` only) and a lifecycle rule that aborts multipart uploads left incomplete for 7 days. Give the app's role only `s3:ListBucket`, `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`, `s3:ListMultipartUploadParts`, `s3:AbortMultipartUpload`, `s3:PutBucketCors`, and `s3:PutBucketLifecycleConfiguration` on this bucket. The retention job deletes evidence objects after purging a case, so evidence is not under Object Lock. Chain of custody is kept by the database's append-only log and the SHA-256 hash taken at upload.
+- **Evidence** (`config.BLOB_CONTAINER`). Browsers upload blocks straight to the container through user delegation SAS URLs (write-only, one blob, 6 hours); the backend then commits the block list. Set an account CORS rule allowing `PUT` from `publicUrl` only. Give the backend's workload identity (`workloadIdentity.clientId`) `Storage Blob Data Contributor` on the container and `Storage Blob Delegator` on the account. Azure discards uncommitted blocks of abandoned uploads after 7 days. The retention job deletes evidence blobs after purging a case, so evidence is not under an immutability policy. Chain of custody is kept by the database's append-only log and the SHA-256 hash taken at upload.
 - **Backups** (`backup.destinationPath`). Enable Object Lock in compliance mode with a default retention a little shorter than `backup.retention` (for example 28 days for 30), so backups cannot be altered or deleted early, including by an administrator. Barman's own retention cleanup then deletes objects only after their lock has expired. Use a separate account or project from the cluster if possible.
 
-`config.S3_PUBLIC_ENDPOINT_URL` is the endpoint browsers upload to. The web app's Content-Security-Policy allows `connect-src` to it and nowhere else.
+`blobPublicOrigin` is the blob endpoint origin browsers upload to. The web app's Content-Security-Policy allows `connect-src` to it and nowhere else.
 
 ## 6. TLS and the Gateway
 
@@ -97,7 +97,7 @@ Encryption in transit:
 |---|---|
 | Browser to Gateway | TLS 1.2+ (cert-manager) |
 | App to PostgreSQL, and replication | TLS, verified (CloudNativePG CA) |
-| App to S3, IdP, SMTP, IMAP | TLS (https, STARTTLS, imaps) |
+| App to blob storage, IdP, SMTP, IMAP | TLS (https, STARTTLS, imaps) |
 | Gateway to pods | Cluster network. Use a CNI with WireGuard or IPsec encryption (Cilium, Calico), or a service mesh, if node-to-node traffic must be encrypted |
 
 ## 7. Network policies
@@ -106,7 +106,7 @@ The app chart denies all ingress and egress in the namespace by default, then al
 
 - DNS to kube-dns, for every pod.
 - Ingress to the backend (8000) and frontend (8080) from the Gateway namespace (`networkPolicy.gatewayNamespace`).
-- Egress from the backend and jobs to PostgreSQL (5432), and to `networkPolicy.egressPorts` (default 443, 587, 993) for the IdP, S3, webhooks, SMTP, and IMAP.
+- Egress from the backend and jobs to PostgreSQL (5432), and to `networkPolicy.egressPorts` (default 443, 587, 993) for the IdP, blob storage, webhooks, SMTP, and IMAP.
 
 The database chart allows PostgreSQL connections only from pods labeled `casemgr.io/database-client: "true"` (the backend and jobs) and from its own instances, plus the operator's status checks. To narrow egress further, use a CNI with FQDN policies (for example Cilium's `toFQDNs`).
 
@@ -127,9 +127,11 @@ config:
   OIDC_METADATA_URL: https://idp.example.com/realms/casemgr/.well-known/openid-configuration
   SMTP_HOST: smtp.example.com
   MAIL_FROM: casemgr@example.com
-  S3_REGION: us-east-1
-  S3_BUCKET: example-casemgr-evidence
-  S3_PUBLIC_ENDPOINT_URL: https://s3.us-east-1.amazonaws.com
+  BLOB_ACCOUNT_URL: https://examplecasemgr.blob.core.windows.net
+  BLOB_CONTAINER: evidence
+blobPublicOrigin: https://examplecasemgr.blob.core.windows.net
+workloadIdentity:
+  clientId: <backend identity client ID>
 gateway:
   hostname: casemgr.example.com
   clusterIssuer: letsencrypt
@@ -175,8 +177,8 @@ Upgrade operators (CloudNativePG, Envoy Gateway, cert-manager) separately, follo
 - [ ] Groups are mapped for both tenants; there are no personal admin accounts beyond the minimum.
 - [ ] The namespace enforces Pod Security `restricted`, and Kyverno verifies image signatures.
 - [ ] Images are pinned by digest and signatures are verified.
-- [ ] Secrets come from the secret manager; no static S3 keys where workload identity is available.
-- [ ] The StorageClass and both buckets are encrypted under customer-managed keys; the backup bucket has Object Lock.
+- [ ] Secrets come from the secret manager; no storage keys (workload identity).
+- [ ] The StorageClass and storage accounts are encrypted (customer-managed keys where required); backups are immutable for their retention period.
 - [ ] The Gateway certificate is valid, and TLS 1.0 and 1.1 are refused (`openssl s_client -tls1_1` fails).
 - [ ] The NetworkPolicies are in place: a pod in another namespace cannot reach the backend or PostgreSQL.
 - [ ] The first base backup has completed, and a restore drill has passed (`docs/operations.md`).

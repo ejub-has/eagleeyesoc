@@ -31,14 +31,13 @@ class Settings(BaseSettings):
     smtp_username: str | None = None
     smtp_password: str | None = None
     mail_from: str = "casemgr@localhost"
-    # Evidence storage. The public endpoint is what browsers reach for presigned uploads.
-    s3_endpoint_url: str | None = None
-    s3_public_endpoint_url: str | None = None
-    s3_region: str = "us-east-1"
-    s3_bucket: str = "casemgr-evidence"
-    s3_access_key: str | None = None
-    s3_secret_key: str | None = None
-    s3_part_size_mb: int = 64
+    # Evidence storage: Azure Blob Storage through Entra ID (account URL), or a connection
+    # string for the local emulator. The public URL is what browsers reach for block uploads.
+    blob_account_url: str | None = None
+    blob_connection_string: str | None = None
+    blob_public_url: str | None = None
+    blob_container: str = "evidence"
+    blob_block_size_mb: int = 64
     malware_max_mb: int = 100
 
 

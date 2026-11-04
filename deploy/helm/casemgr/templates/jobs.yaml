@@ -1,4 +1,4 @@
-# Schema migrations and bucket setup run before the new version's pods start.
+# Schema migrations (and, with an emulator, container setup) run before the new version's pods start.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -13,11 +13,12 @@ spec:
   backoffLimit: 3
   template:
     {{- include "casemgr.jobPod" (dict "ctx" . "command" (list "alembic" "upgrade" "head") "role" "owner") | nindent 4 }}
+{{- if .Values.createContainer }}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Release.Name }}-create-bucket
+  name: {{ .Release.Name }}-create-container
   labels:
     {{- include "casemgr.labels" . | nindent 4 }}
   annotations:
@@ -27,7 +28,8 @@ metadata:
 spec:
   backoffLimit: 3
   template:
-    {{- include "casemgr.jobPod" (dict "ctx" . "command" (list "python" "-m" "app.jobs" "create_bucket")) | nindent 4 }}
+    {{- include "casemgr.jobPod" (dict "ctx" . "command" (list "python" "-m" "app.jobs" "create_container")) | nindent 4 }}
+{{- end }}
 {{- range $name, $schedule := .Values.jobs }}
 {{- if $schedule }}
 ---

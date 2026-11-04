@@ -17,15 +17,14 @@ services:
       interval: 2s
       retries: 30
 
-  s3:
-    image: chrislusf/seaweedfs:4.51@sha256:f7a49e3f3972ebed5be2ed4befa4a0c68eb7bdddba6e692d42729ceb545134b8
-    command: server -s3 -dir=/data
-    ports: ["8333:8333"]
-    volumes: [s3:/data]
-    # Its master, volume, filer, and S3 servers need more than the default 10 s to stop cleanly.
-    stop_grace_period: 30s
+  # Azure Blob Storage emulator.
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    command: azurite-blob --blobHost 0.0.0.0 --location /data --skipApiVersionCheck --loose
+    ports: ["10000:10000"]
+    volumes: [azurite:/data]
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/healthz"]
+      test: ["CMD", "node", "-e", "require('net').connect(10000, '127.0.0.1').on('connect', () => process.exit(0)).on('error', () => process.exit(1))"]
       interval: 2s
       retries: 30
 
@@ -65,10 +64,10 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
 
-  # Creates the evidence bucket; production buckets are provisioned with the infrastructure.
-  s3-init:
+  # Creates the evidence container; in Azure, Terraform provisions it.
+  blob-init:
     build: ../backend
-    command: ["python", "-m", "app.jobs", "create_bucket"]
+    command: ["python", "-m", "app.jobs", "create_container"]
     environment: &backend-env
       CASEMGR_DATABASE_URL: postgresql+asyncpg://casemgr_app:casemgr_app@postgres:5432/casemgr
       CASEMGR_OIDC_METADATA_URL: http://keycloak:8080/realms/casemgr/.well-known/openid-configuration
@@ -82,13 +81,12 @@ services:
       CASEMGR_SMTP_PORT: "1025"
       CASEMGR_SMTP_STARTTLS: "false"
       CASEMGR_MAIL_FROM: casemgr@example.test
-      CASEMGR_S3_ENDPOINT_URL: http://s3:8333
-      # Browsers upload evidence parts here directly.
-      CASEMGR_S3_PUBLIC_ENDPOINT_URL: http://localhost:8333
-      CASEMGR_S3_ACCESS_KEY: dev
-      CASEMGR_S3_SECRET_KEY: dev
+      # The emulator's public development account key.
+      CASEMGR_BLOB_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      # Browsers upload evidence blocks here directly.
+      CASEMGR_BLOB_PUBLIC_URL: http://localhost:10000/devstoreaccount1
     depends_on:
-      s3: { condition: service_healthy }
+      azurite: { condition: service_healthy }
 
   backend:
     build: ../backend
@@ -96,7 +94,7 @@ services:
     ports: ["8000:8000"]
     depends_on:
       migrate: { condition: service_completed_successfully }
-      s3-init: { condition: service_completed_successfully }
+      blob-init: { condition: service_completed_successfully }
       keycloak: { condition: service_healthy }
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz')"]
@@ -107,11 +105,11 @@ services:
     build: ../frontend
     environment:
       CASEMGR_API_UPSTREAM: http://backend:8000
-      CASEMGR_S3_PUBLIC_ORIGIN: http://localhost:8333
+      CASEMGR_BLOB_PUBLIC_ORIGIN: http://localhost:10000
     ports: ["8080:8080"]
     depends_on:
       backend: { condition: service_healthy }
 
 volumes:
   postgres:
-  s3:
+  azurite:

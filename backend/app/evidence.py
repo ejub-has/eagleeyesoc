@@ -126,7 +126,7 @@ async def start_upload(db: AsyncSession, case: Case, actor: str, body: UploadIn)
     db.add(evidence)
     await db.flush()
     key = evidence.object_key = f"{case.tenant_id}/{evidence.id}"
-    upload_id = evidence.upload_id = await asyncio.to_thread(storage.start_upload, key)
+    upload_id = evidence.upload_id = storage.start_upload(key)
     await _collected(db, evidence, actor, body.collection)
     size = storage.part_size(body.size)
     urls = storage.part_urls(key, upload_id, math.ceil(body.size / size))
@@ -146,8 +146,7 @@ async def finish_upload(db: AsyncSession, evidence: Evidence, actor: str) -> Non
 
 
 async def abort_upload(db: AsyncSession, evidence: Evidence, actor: str) -> None:
-    assert evidence.object_key and evidence.upload_id  # noqa: S101 - checked by the caller
-    await asyncio.to_thread(storage.abort_upload, evidence.object_key, evidence.upload_id)
+    # Azure discards blocks that were never committed after 7 days.
     evidence.upload_id = None
     evidence.status = EvidenceStatus.DELETED
     evidence.deleted_at = datetime.now(UTC)

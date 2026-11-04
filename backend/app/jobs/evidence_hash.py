@@ -34,6 +34,6 @@ async def run() -> int:
     return 0
 
 
-async def create_bucket() -> int:
-    await asyncio.to_thread(storage.ensure_bucket)
+async def create_container() -> int:
+    await asyncio.to_thread(storage.ensure_container)
     return 0

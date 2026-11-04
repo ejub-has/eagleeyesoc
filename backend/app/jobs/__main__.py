@@ -19,7 +19,7 @@ async def audit_verify() -> int:
 JOBS = {
     "audit_verify": audit_verify,
     "clocks": clocks.run,
-    "create_bucket": evidence_hash.create_bucket,
+    "create_container": evidence_hash.create_container,
     "email_intake": email_intake.run,
     "evidence_hash": evidence_hash.run,
     "retention": retention.run,

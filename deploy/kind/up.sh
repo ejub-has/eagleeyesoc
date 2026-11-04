@@ -38,8 +38,7 @@ kubectl apply -f deploy/kind/platform.yaml
 kubectl -n casemgr create secret generic casemgr \
   --from-literal=CASEMGR_OIDC_CLIENT_SECRET=dev-only-client-secret \
   --from-literal=CASEMGR_SECRET_KEY="$(openssl rand -hex 32)" \
-  --from-literal=CASEMGR_S3_ACCESS_KEY=dev \
-  --from-literal=CASEMGR_S3_SECRET_KEY=dev \
+  --from-literal=CASEMGR_BLOB_CONNECTION_STRING="DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite.casemgr-dev:10000/devstoreaccount1;" \
   --from-literal=CASEMGR_IMAP_URL='imap://intake%40example.test:intake@greenmail.casemgr-dev:3143/INBOX'
 kubectl -n casemgr create secret generic casemgr-db-runtime --type=kubernetes.io/basic-auth \
   --from-literal=username=casemgr_app --from-literal=password="$(openssl rand -hex 24)"

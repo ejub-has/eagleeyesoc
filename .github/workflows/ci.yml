@@ -20,9 +20,10 @@ jobs:
         with:
           working-directory: backend
       - run: uv sync --locked
-      # When dependencies change, the regenerated lock file is attached to the run.
+      # When dependencies change, the regenerated lock file is attached to the run (and
+      # printed gzip+base64, for environments that cannot download artifacts).
       - if: failure()
-        run: uv lock
+        run: uv lock && echo "uv.lock.gz.b64:$(gzip -9c uv.lock | base64 -w0)"
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

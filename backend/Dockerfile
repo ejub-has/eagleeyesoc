@@ -7,7 +7,9 @@ RUN uv sync --locked --no-dev
 
 FROM python:3.15-slim-trixie@sha256:94d3426f1def7db4a106a232ac121bfd975393e5dfd40a619b955fae45fe7913
 ENV PATH=/app/.venv/bin:$PATH PYTHONUNBUFFERED=1
-RUN python -m pip uninstall -y pip
+# Security fixes released after the pinned base image (the scan fails on fixable HIGH CVEs).
+RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/* \
+    && python -m pip uninstall -y pip
 WORKDIR /app
 COPY --from=build /app/.venv .venv
 COPY alembic.ini ./

@@ -1,4 +1,4 @@
-# Primary plus synchronous standbys spread across nodes.
+# Primary plus synchronous standbys spread across nodes (1 disables synchronous replication).
 instances: 3
 # Empty uses the CloudNativePG operator's default PostgreSQL image.
 imageName: ""

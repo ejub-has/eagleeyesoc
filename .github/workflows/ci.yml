@@ -102,7 +102,13 @@ jobs:
           BASE_URL: https://localhost:8443
       - run: bash deploy/kind/restore-drill.sh
       - if: failure()
-        run: kubectl get pods -A && kubectl -n casemgr logs deploy/casemgr-backend --tail=200 && kubectl -n casemgr-dev logs deploy/seaweedfs --tail=200
+        run: |
+          kubectl get pods -A
+          kubectl describe node | sed -n '/Allocated resources/,/Events/p'
+          kubectl get events -A --field-selector type=Warning --sort-by=.lastTimestamp | tail -30
+          kubectl -n casemgr logs deploy/casemgr-backend --tail=200 || true
+          kubectl -n casemgr logs -l app.kubernetes.io/component=job --prefix --tail=50 || true
+          kubectl -n casemgr-dev logs deploy/seaweedfs --tail=100 || true
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

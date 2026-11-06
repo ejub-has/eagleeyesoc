@@ -187,8 +187,8 @@ resource "azurerm_key_vault" "main" {
 
   # Only Terraform (control plane) and admins from listed addresses reach the secrets.
   network_acls {
-    default_action = "Deny"
-    bypass         = "AzureServices"
+    default_action             = "Deny"
+    bypass                     = "AzureServices"
     ip_rules                   = var.admin_ip_ranges
     virtual_network_subnet_ids = [azurerm_subnet.nodes.id]
   }

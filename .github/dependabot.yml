@@ -1,21 +1,26 @@
-# Weekly update pull requests; each one runs the full CI before it can be merged.
+# Weekly update pull requests; each one runs the full CI before it can be merged. Releases
+# younger than 7 days are skipped (as uv's exclude-newer does) to dodge compromised releases.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
     groups:
       actions: { patterns: ["*"] }
   - package-ecosystem: docker
     directories: [/backend, /frontend]
     schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
   - package-ecosystem: uv
     directory: /backend
     schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
     groups:
       python: { patterns: ["*"], update-types: [minor, patch] }
   - package-ecosystem: npm
     directories: [/frontend, /e2e]
     schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
     groups:
       npm: { patterns: ["*"], update-types: [minor, patch] }

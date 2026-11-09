@@ -1,0 +1,74 @@
+name: Infra
+
+on:
+  pull_request:
+    paths: [infra/**, .github/workflows/infra.yml]
+  push:
+    branches: [main]
+    paths: [infra/**, .github/workflows/infra.yml]
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Apply the plan to Azure (main branch only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: infra/terraform
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.17.1
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: infra/terraform
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+  # Runs once the Azure connection is configured (docs/azure.md, step 3).
+  plan:
+    needs: validate
+    if: vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    environment: pov
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_cluster_admin_object_ids: ${{ vars.CLUSTER_ADMIN_OBJECT_IDS || '[]' }}
+      TF_VAR_admin_ip_ranges: ${{ vars.ADMIN_IP_RANGES }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.17.1
+      - run: >-
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ vars.TF_STATE_RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ vars.TF_STATE_STORAGE_ACCOUNT }}"
+          -backend-config="container_name=tfstate"
+          -backend-config="key=pov.tfstate"
+          -backend-config="use_azuread_auth=true"
+      - run: terraform plan -input=false -lock-timeout=5m -out=tfplan
+      - if: github.event_name == 'workflow_dispatch' && inputs.apply && github.ref == 'refs/heads/main'
+        run: terraform apply -input=false -lock-timeout=5m tfplan
+      - if: github.event_name == 'workflow_dispatch' && inputs.apply && github.ref == 'refs/heads/main'
+        run: terraform output

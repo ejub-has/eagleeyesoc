@@ -1,14 +1,12 @@
 from typing import Any
 
 import pytest
-from botocore.exceptions import ClientError
 from httpx2 import AsyncClient
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app import storage
-from app.config import settings
 from app.db import SessionLocal, set_tenant
 from app.jobs import retention
 from tests.conftest import MakeUser, SignedIn, close_case
@@ -106,11 +104,7 @@ async def rows(owner: AsyncEngine, case_id: str) -> dict[str, int]:
 
 
 def stored(key: str) -> bool:
-    try:
-        storage.client().head_object(Bucket=settings.s3_bucket, Key=key)
-    except ClientError:
-        return False
-    return True
+    return storage.container().get_blob_client(key).exists()
 
 
 async def object_key(owner: AsyncEngine, evidence_id: str) -> str:

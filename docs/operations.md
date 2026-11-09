@@ -18,7 +18,7 @@ Targets (NFR-01, NFR-06): 99.9% availability, RTO 4 h or less, RPO 15 min or les
 | Encryption | SSE-KMS on every object (`backup.encryption`), TLS in transit | SR-04 |
 | Immutability | Object Lock in compliance mode on the backup bucket | NFR-06 |
 | Retention | `backup.retention` (default 30 days) | |
-| Evidence objects | S3 versioning and cross-region replication on the evidence bucket | |
+| Evidence blobs | Blob versioning and soft delete on the evidence container (Terraform enables both); geo-redundant replication (GRS) where required | |
 
 Check health:
 

@@ -4,7 +4,7 @@ server {
     root /usr/share/nginx/html;
 
     # Evidence uploads go from the browser straight to object storage.
-    add_header Content-Security-Policy "default-src 'self'; connect-src 'self' ${CASEMGR_S3_PUBLIC_ORIGIN}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+    add_header Content-Security-Policy "default-src 'self'; connect-src 'self' ${CASEMGR_BLOB_PUBLIC_ORIGIN}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy no-referrer always;
 

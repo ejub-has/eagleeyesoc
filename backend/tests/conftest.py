@@ -17,26 +17,33 @@ from testcontainers.core.container import DockerContainer
 
 APP_ROLE = "casemgr_app"
 _postgres = PostgresContainer("postgres:18.6", driver="asyncpg")
-_s3 = (
-    DockerContainer("chrislusf/seaweedfs:4.51")
-    .with_command("server -s3 -dir=/data")
-    .with_exposed_ports(8333)
+_azurite = (
+    DockerContainer("mcr.microsoft.com/azure-storage/azurite:3.35.0")
+    .with_command("azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck --loose")
+    .with_exposed_ports(10000)
+)
+# The emulator's documented, public development account key.
+AZURITE_KEY = (
+    "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
 )
 
 
-def _start_s3() -> str:
-    _s3.start()
-    url = f"http://{_s3.get_container_host_ip()}:{_s3.get_exposed_port(8333)}"
+def _start_azurite() -> str:
+    _azurite.start()
+    url = f"http://{_azurite.get_container_host_ip()}:{_azurite.get_exposed_port(10000)}"
     deadline = time.monotonic() + 60
     while True:
         try:
-            if httpx2.get(f"{url}/healthz", timeout=2).status_code == 200:
-                return url
+            httpx2.get(url, timeout=2)
+            break
         except httpx2.TransportError:
-            pass
-        if time.monotonic() > deadline:
-            raise RuntimeError("S3 test server did not start")
-        time.sleep(0.5)
+            if time.monotonic() > deadline:
+                raise RuntimeError("Blob storage emulator did not start") from None
+            time.sleep(0.5)
+    return (
+        "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;"
+        f"AccountKey={AZURITE_KEY};BlobEndpoint={url}/devstoreaccount1;"
+    )
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
@@ -56,20 +63,18 @@ def pytest_sessionstart(session: pytest.Session) -> None:
         CASEMGR_OIDC_METADATA_URL="https://idp.test/.well-known/openid-configuration",
         CASEMGR_OIDC_CLIENT_SECRET="test-client-secret",
         CASEMGR_SECRET_KEY="test-secret-key",
-        CASEMGR_S3_ENDPOINT_URL=_start_s3(),
-        CASEMGR_S3_BUCKET="evidence-test",
-        CASEMGR_S3_ACCESS_KEY="test",
-        CASEMGR_S3_SECRET_KEY="test",
+        CASEMGR_BLOB_CONNECTION_STRING=_start_azurite(),
+        CASEMGR_BLOB_CONTAINER="evidence-test",
     )
     command.upgrade(Config("alembic.ini", attributes={"configure_logger": False}), "head")
     from app import storage
 
-    storage.ensure_bucket()
+    storage.ensure_container()
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     _postgres.stop()
-    _s3.stop()
+    _azurite.stop()
 
 
 @pytest.fixture(scope="session")

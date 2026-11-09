@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
-from botocore.exceptions import ClientError
+from azure.core.exceptions import HttpResponseError
 from fastapi import APIRouter, Form, HTTPException, Query, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse
@@ -72,7 +72,7 @@ async def complete_upload(number: int, evidence_id: UUID, ctx: Writer, db: Db) -
         cases.invalid("the upload is not in progress")
     try:
         await evidence.finish_upload(db, item, ctx.principal.actor)
-    except ClientError, ValueError:
+    except HttpResponseError, ValueError:
         cases.invalid("the upload is incomplete; upload every part and try again")
     await ctx.audit(db, "evidence.upload", f"case:{number}", evidence=str(item.id), size=item.size)
     return EvidenceOut.model_validate(item)

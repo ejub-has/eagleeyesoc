@@ -33,14 +33,23 @@ config:
   # and OIDC_ROLES_CLAIM: roles.
   SMTP_HOST: smtp.example.com
   MAIL_FROM: casemgr@example.com
-  S3_REGION: us-east-1
-  S3_BUCKET: casemgr-evidence
-  # Browsers upload evidence here, so it is also allowed in the web app's CSP.
-  S3_PUBLIC_ENDPOINT_URL: https://s3.us-east-1.amazonaws.com
+  BLOB_ACCOUNT_URL: https://example.blob.core.windows.net
+  BLOB_CONTAINER: evidence
+
+# Origin browsers upload evidence to (the blob endpoint), allowed in the web app's CSP.
+blobPublicOrigin: https://example.blob.core.windows.net
+
+# Entra workload identity for the backend and jobs (Azure). With a client ID set, they run
+# as the <release>-backend service account federated with that identity.
+workloadIdentity:
+  clientId: ""
+
+# Create the evidence container in a pre-install hook (emulators; Terraform creates it in Azure).
+createContainer: false
 
 # Existing Secret (for example from External Secrets) with the secret settings as
-# CASEMGR_* keys: OIDC_CLIENT_SECRET, SECRET_KEY, and as needed S3_ACCESS_KEY,
-# S3_SECRET_KEY, SMTP_USERNAME, SMTP_PASSWORD, IMAP_URL.
+# CASEMGR_* keys: OIDC_CLIENT_SECRET, SECRET_KEY, and as needed BLOB_CONNECTION_STRING,
+# SMTP_USERNAME, SMTP_PASSWORD, IMAP_URL.
 secretName: casemgr
 
 # The CloudNativePG cluster from the casemgr-db chart, in the same namespace.
@@ -76,5 +85,5 @@ gateway:
 networkPolicy:
   # Namespace of the Envoy proxies that forward traffic to the app.
   gatewayNamespace: envoy-gateway-system
-  # Outbound TCP ports the backend and jobs may use, to any address: IdP, S3, and webhooks (443), SMTP (587), IMAP (993).
+  # Outbound TCP ports the backend and jobs may use, to any address: IdP, blob storage, and webhooks (443), SMTP (587), IMAP (993).
   egressPorts: [443, 587, 993]

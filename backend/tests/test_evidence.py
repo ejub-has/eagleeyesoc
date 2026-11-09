@@ -53,12 +53,12 @@ async def start(client: AsyncClient, tenant: str, number: int, size: int, name: 
 
 
 async def upload(client: AsyncClient, tenant: str, number: int, data: bytes, **kw: Any) -> str:
-    """Upload the way a browser does: every part straight to S3, then complete."""
+    """Upload the way a browser does: every block straight to storage, then complete."""
     started = await start(client, tenant, number, len(data), **kw)
     size = started["part_size"]
     for i, part_url in enumerate(started["part_urls"]):
         response = httpx2.put(part_url, content=data[i * size : (i + 1) * size], timeout=30)
-        assert response.status_code == 200, response.text
+        assert response.status_code == 201, response.text
     evidence_id = started["evidence"]["id"]
     done = await client.post(url(tenant, number, f"/{evidence_id}/complete"))
     assert done.status_code == 200, done.text
@@ -78,7 +78,7 @@ def actions(custody: dict[str, Any]) -> list[str]:
 async def test_multipart_upload_is_hashed_and_verified_on_download(
     analyst: SignedIn, tenant: str, monkeypatch: MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(settings, "s3_part_size_mb", 5)  # S3's minimum part size
+    monkeypatch.setattr(settings, "blob_block_size_mb", 5)
     data = bytes(range(256)) * (11 * 4096)  # 11 MiB: three parts
     number = await new_case(analyst.client, tenant)
 
@@ -366,11 +366,10 @@ def test_content_disposition_is_always_an_attachment() -> None:
     )
 
 
-async def test_create_bucket_job_is_idempotent_and_sets_bucket_rules() -> None:
-    assert await evidence_hash.create_bucket() == 0
-    s3 = storage.client()
-    [cors] = s3.get_bucket_cors(Bucket=settings.s3_bucket)["CORSRules"]
-    assert cors["AllowedOrigins"] == [settings.public_url]
-    assert cors["AllowedMethods"] == ["PUT"]
-    [rule] = s3.get_bucket_lifecycle_configuration(Bucket=settings.s3_bucket)["Rules"]
-    assert rule["AbortIncompleteMultipartUpload"] == {"DaysAfterInitiation": 7}
+async def test_create_container_job_is_idempotent_and_allows_browser_uploads() -> None:
+    assert await evidence_hash.create_container() == 0
+    assert await evidence_hash.create_container() == 0
+    assert storage.container().exists()
+    [cors] = storage.service().get_service_properties()["cors"]
+    assert cors.allowed_origins == settings.public_url
+    assert cors.allowed_methods == "PUT"

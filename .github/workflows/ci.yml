@@ -20,6 +20,15 @@ jobs:
         with:
           working-directory: backend
       - run: uv sync --locked
+      # When dependencies change, the regenerated lock file is attached to the run (and
+      # printed gzip+base64, for environments that cannot download artifacts).
+      - if: failure()
+        run: uv lock && echo "uv.lock.gz.b64:$(gzip -9c uv.lock | base64 -w0)"
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: uv-lock
+          path: backend/uv.lock
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pyright
@@ -104,10 +113,11 @@ jobs:
       - if: failure()
         run: |
           kubectl get pods -A
-          kubectl describe node | grep -A12 'Allocated resources'
-          kubectl get events -A --field-selector type=Warning --sort-by=.lastTimestamp | tail -30
           kubectl -n casemgr logs deploy/casemgr-backend --tail=200 || true
           kubectl -n casemgr logs -l app.kubernetes.io/component=job --prefix --tail=50 || true
+          kubectl -n casemgr-dev logs deploy/azurite --tail=100 || true
+          kubectl describe node | grep -A12 'Allocated resources'
+          kubectl get events -A --field-selector type=Warning --sort-by=.lastTimestamp | tail -30
           kubectl -n casemgr-dev logs deploy/seaweedfs --tail=100 || true
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

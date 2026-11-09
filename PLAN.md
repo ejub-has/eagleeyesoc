@@ -165,7 +165,7 @@ README.md
 - [x] Helm chart `deploy/helm/casemgr`: backend (>= 3 replicas, PodDisruptionBudget, HPA), frontend, CronJobs, NetworkPolicies (default deny), non-root read-only containers, Pod Security `restricted`. Migrations and bucket setup run as pre-install/pre-upgrade hooks
 - [x] Postgres via CloudNativePG in a separate chart `deploy/helm/casemgr-db` (kept on uninstall): 3 instances, synchronous replica, WAL archiving through the Barman Cloud plugin (`archive_timeout` 5 min, so RPO <= 15 min), daily base backups to an Object Lock bucket
 - [x] TLS 1.2+ at the Gateway (cert-manager; TLS 1.1 refused) and verified TLS between app and Postgres (`ssl=verify-full`, non-TLS rejected by `pg_hba`); encrypted volumes and SSE-KMS for buckets documented and configurable
-- [x] Evidence bucket: the `create_bucket` hook applies CORS (PUT from the app origin) and a lifecycle rule aborting incomplete multipart uploads after 7 days; `CASEMGR_S3_PUBLIC_ORIGIN` in the frontend CSP; `evidence_hash` and the other jobs as CronJobs
+- [x] Evidence bucket: the `create_bucket` hook applies CORS (PUT from the app origin) and a lifecycle rule aborting incomplete multipart uploads after 7 days; `CASEMGR_S3_PUBLIC_ORIGIN` in the frontend CSP; `evidence_hash` and the other jobs as CronJobs (superseded by Azure Blob in Phase 13)
 - [x] Rate limiting on the API route at the Gateway (Envoy Gateway local rate limit; per-client limits need the global limiter and Redis, documented)
 - [x] Images signed with cosign (keyless) with a signed SPDX SBOM attestation, and SBOMs attached to each GitHub release (`release.yml`, on `v*` tags)
 - [x] Load test (k6, `loadtest/`) run locally at 1M cases / 10M observables, by decision; the 100M run is for staging. Result: case view p95 886 ms, search p95 2.88 s with PostgreSQL on 2 CPUs. The first run failed: row-level security kept Postgres from using the full-text indexes (`@@` is not leakproof), so search now runs in a `search_hits` function owned by `casemgr_search` (NOLOGIN, BYPASSRLS) that applies the tenant and restricted-case filters itself, and excerpts are built only for returned hits
@@ -188,8 +188,8 @@ README.md
 
 ### Phase 13 - Azure proof of value
 
-- [ ] Terraform: AKS (cheapest viable), DNS label hostname, Key Vault, storage; monthly cost within about 200 USD
-- [ ] Port `backend/app/storage.py` from S3 to Azure Blob Storage (block uploads through SAS URLs, streaming download, delete, lifecycle cleanup of incomplete uploads); update the evidence flow and tests
+- [x] Terraform: AKS (cheapest viable), DNS label hostname, Key Vault, storage; monthly cost within about 200 USD (`infra/terraform`, `docs/azure.md`)
+- [x] Port `backend/app/storage.py` from S3 to Azure Blob Storage: browser block uploads through user delegation SAS URLs, block list commit, streaming download, delete; Azurite replaces SeaweedFS for evidence in tests, compose, and kind; Helm chart gains a workload identity service account
 - [ ] Helm values for the proof of value (single-instance CloudNativePG, Azure Blob); synthetic alerts only; IMAP intake job disabled
 
 ---

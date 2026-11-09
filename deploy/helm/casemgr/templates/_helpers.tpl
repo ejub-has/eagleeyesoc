@@ -19,6 +19,13 @@ securityContext:
     type: RuntimeDefault
 {{- end }}
 
+{{/* Service account for pods that use blob storage (backend and jobs). */}}
+{{- define "casemgr.backendIdentity" -}}
+{{- if .Values.workloadIdentity.clientId }}
+serviceAccountName: {{ .Release.Name }}-backend
+{{- end }}
+{{- end }}
+
 {{- define "casemgr.containerSecurity" -}}
 securityContext:
   allowPrivilegeEscalation: false
@@ -84,9 +91,13 @@ metadata:
     {{- include "casemgr.selector" $ | nindent 4 }}
     app.kubernetes.io/component: job
     casemgr.io/database-client: "true"
+    {{- if $.Values.workloadIdentity.clientId }}
+    azure.workload.identity/use: "true"
+    {{- end }}
 spec:
   restartPolicy: Never
   {{- include "casemgr.podSecurity" $ | nindent 2 }}
+  {{- include "casemgr.backendIdentity" $ | nindent 2 }}
   containers:
     - name: job
       image: {{ $.Values.images.backend }}

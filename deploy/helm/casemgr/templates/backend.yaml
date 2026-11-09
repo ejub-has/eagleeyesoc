@@ -17,8 +17,12 @@ spec:
         {{- include "casemgr.selector" . | nindent 8 }}
         app.kubernetes.io/component: backend
         casemgr.io/database-client: "true"
+        {{- if .Values.workloadIdentity.clientId }}
+        azure.workload.identity/use: "true"
+        {{- end }}
     spec:
       {{- include "casemgr.podSecurity" . | nindent 6 }}
+      {{- include "casemgr.backendIdentity" . | nindent 6 }}
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname

@@ -25,8 +25,11 @@ config:
   SMTP_PORT: "1025"
   SMTP_STARTTLS: "false"
   MAIL_FROM: casemgr@example.test
-  S3_ENDPOINT_URL: http://seaweedfs.casemgr-dev:8333
-  S3_PUBLIC_ENDPOINT_URL: http://localhost:8333
+  BLOB_ACCOUNT_URL: ""
+  BLOB_PUBLIC_URL: http://localhost:10000/devstoreaccount1
+
+blobPublicOrigin: http://localhost:10000
+createContainer: true
 
 # The E2E tests run jobs on demand, so the schedules never fire (February 31).
 # Run one with: kubectl -n casemgr create job --from=cronjob/casemgr-sla sla-now
@@ -46,5 +49,5 @@ gateway:
   apiRateLimit: 500
 
 networkPolicy:
-  # Keycloak 8080, SeaweedFS 8333, Mailpit 1025, GreenMail 3025 and 3143.
-  egressPorts: [8080, 8333, 1025, 3025, 3143]
+  # Keycloak 8080, Azurite 10000, Mailpit 1025, GreenMail 3025 and 3143.
+  egressPorts: [8080, 10000, 1025, 3025, 3143]

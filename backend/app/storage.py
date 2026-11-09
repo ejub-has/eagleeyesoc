@@ -1,140 +1,119 @@
-"""S3 object storage for evidence. Uploads go straight from the browser through presigned URLs."""
+"""Azure Blob Storage for evidence. Browsers upload blocks straight to storage through SAS URLs."""
 
 import math
+import uuid
+from base64 import b64encode
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 from functools import cache
-from typing import Any
+from urllib.parse import quote
 
-import boto3
-from botocore.config import Config
-from botocore.exceptions import ClientError
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import (
+    BlobBlock,
+    BlobSasPermissions,
+    BlobServiceClient,
+    ContainerClient,
+    ContentSettings,
+    CorsRule,
+    generate_blob_sas,
+)
 
 from app.config import settings
 
 MB = 1024 * 1024
-MAX_PARTS = 10_000  # S3's limit per multipart upload
-URL_TTL_SECONDS = 6 * 3600
-ABANDON_DAYS = 7
-
-
-def _client(endpoint: str | None) -> Any:
-    return boto3.client(
-        "s3",
-        endpoint_url=endpoint,
-        region_name=settings.s3_region,
-        aws_access_key_id=settings.s3_access_key,
-        aws_secret_access_key=settings.s3_secret_key,
-        config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
-    )
+MAX_BLOCKS = 50_000  # Azure's limit per block blob
+URL_TTL = timedelta(hours=6)
+OCTET_STREAM = ContentSettings(content_type="application/octet-stream")
 
 
 @cache
-def client() -> Any:
-    return _client(settings.s3_endpoint_url)
+def service() -> BlobServiceClient:
+    # A connection string (account key) is for the local emulator; Azure uses Entra ID
+    # (workload identity in AKS) and has shared keys disabled.
+    if settings.blob_connection_string:
+        return BlobServiceClient.from_connection_string(settings.blob_connection_string)
+    return BlobServiceClient(settings.blob_account_url, credential=DefaultAzureCredential())  # pyright: ignore[reportArgumentType]
 
 
-@cache
-def presigner() -> Any:
-    return _client(settings.s3_public_endpoint_url or settings.s3_endpoint_url)
+def container() -> ContainerClient:
+    return service().get_container_client(settings.blob_container)
 
 
 def part_size(size: int) -> int:
-    return max(settings.s3_part_size_mb * MB, math.ceil(size / MAX_PARTS))
+    return max(settings.blob_block_size_mb * MB, math.ceil(size / MAX_BLOCKS))
 
 
 def start_upload(key: str) -> str:
-    response = client().create_multipart_upload(
-        Bucket=settings.s3_bucket, Key=key, ContentType="application/octet-stream"
+    """Blocks need no server-side setup; the ID only marks the upload as in progress."""
+    return uuid.uuid4().hex
+
+
+def _block_param(number: int) -> str:
+    """Block IDs must all have the same length; the SDK base64-decodes them in block lists."""
+    return quote(b64encode(f"{number:05d}".encode()).decode(), safe="")
+
+
+def _sas(key: str) -> str:
+    svc = service()
+    now = datetime.now(UTC)
+    expiry = now + URL_TTL
+    permission = BlobSasPermissions(write=True)
+    if settings.blob_connection_string:
+        return generate_blob_sas(
+            svc.account_name,  # pyright: ignore[reportArgumentType]
+            settings.blob_container,
+            key,
+            account_key=svc.credential.account_key,
+            permission=permission,
+            expiry=expiry,
+        )
+    delegation = svc.get_user_delegation_key(now - timedelta(minutes=5), expiry)
+    return generate_blob_sas(
+        svc.account_name,  # pyright: ignore[reportArgumentType]
+        settings.blob_container,
+        key,
+        user_delegation_key=delegation,
+        permission=permission,
+        expiry=expiry,
     )
-    return response["UploadId"]
 
 
 def part_urls(key: str, upload_id: str, count: int) -> list[str]:
-    return [
-        presigner().generate_presigned_url(
-            "upload_part",
-            Params={
-                "Bucket": settings.s3_bucket,
-                "Key": key,
-                "UploadId": upload_id,
-                "PartNumber": number,
-            },
-            ExpiresIn=URL_TTL_SECONDS,
-        )
-        for number in range(1, count + 1)
-    ]
+    base = settings.blob_public_url or service().url
+    blob = f"{base.rstrip('/')}/{settings.blob_container}/{quote(key)}"
+    sas = _sas(key)
+    return [f"{blob}?comp=block&blockid={_block_param(n)}&{sas}" for n in range(1, count + 1)]
 
 
 def finish_upload(key: str, upload_id: str) -> int:
-    """Complete a multipart upload from the parts S3 holds; return the object's size."""
-    parts: list[dict[str, Any]] = []
-    marker = 0
-    while True:
-        page = client().list_parts(
-            Bucket=settings.s3_bucket, Key=key, UploadId=upload_id, PartNumberMarker=marker
-        )
-        parts += [{"PartNumber": p["PartNumber"], "ETag": p["ETag"]} for p in page.get("Parts", [])]
-        if not page.get("IsTruncated"):
-            break
-        marker = page["NextPartNumberMarker"]
-    if not parts:
+    """Commit the uploaded blocks in order; return the blob's size."""
+    blob = container().get_blob_client(key)
+    _, uncommitted = blob.get_block_list("uncommitted")
+    if not uncommitted:
         raise ValueError("no parts were uploaded")
-    client().complete_multipart_upload(
-        Bucket=settings.s3_bucket, Key=key, UploadId=upload_id, MultipartUpload={"Parts": parts}
-    )
-    return client().head_object(Bucket=settings.s3_bucket, Key=key)["ContentLength"]
-
-
-def abort_upload(key: str, upload_id: str) -> None:
-    client().abort_multipart_upload(Bucket=settings.s3_bucket, Key=key, UploadId=upload_id)
+    blocks = sorted(uncommitted, key=lambda b: b.id)
+    blob.commit_block_list([BlobBlock(b.id) for b in blocks], content_settings=OCTET_STREAM)
+    return sum(b.size for b in blocks)
 
 
 def put(key: str, data: bytes) -> None:
-    client().put_object(
-        Bucket=settings.s3_bucket, Key=key, Body=data, ContentType="application/octet-stream"
-    )
+    container().upload_blob(key, data, overwrite=True, content_settings=OCTET_STREAM)
 
 
 def stream(key: str) -> Iterator[bytes]:
-    body = client().get_object(Bucket=settings.s3_bucket, Key=key)["Body"]
-    yield from body.iter_chunks(MB)
+    yield from container().download_blob(key).chunks()
 
 
 def delete(key: str) -> None:
-    client().delete_object(Bucket=settings.s3_bucket, Key=key)
+    container().delete_blob(key)
 
 
-def ensure_bucket() -> None:
-    """Create the evidence bucket if needed and apply its CORS and lifecycle rules."""
-    try:
-        client().head_bucket(Bucket=settings.s3_bucket)
-    except ClientError:
-        client().create_bucket(Bucket=settings.s3_bucket)
-    # Browsers upload parts straight to the bucket from the app's origin.
-    client().put_bucket_cors(
-        Bucket=settings.s3_bucket,
-        CORSConfiguration={
-            "CORSRules": [
-                {
-                    "AllowedOrigins": [settings.public_url],
-                    "AllowedMethods": ["PUT"],
-                    "AllowedHeaders": ["*"],
-                    "MaxAgeSeconds": 3600,
-                }
-            ]
-        },
-    )
-    # Uploads abandoned mid-way would otherwise keep their parts (and their cost) forever.
-    client().put_bucket_lifecycle_configuration(
-        Bucket=settings.s3_bucket,
-        LifecycleConfiguration={
-            "Rules": [
-                {
-                    "ID": "abort-incomplete-uploads",
-                    "Status": "Enabled",
-                    "Filter": {},
-                    "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": ABANDON_DAYS},
-                }
-            ]
-        },
-    )
+def ensure_container() -> None:
+    """Create the evidence container if needed. On Azure, Terraform creates it and sets CORS."""
+    if not container().exists():
+        container().create_container()
+    if settings.blob_connection_string:
+        # Emulator: browsers upload blocks from the app's origin.
+        rule = CorsRule([settings.public_url], ["PUT"], allowed_headers=["*"])
+        service().set_service_properties(cors=[rule])

@@ -151,13 +151,19 @@ class Alert(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, server_default=func.gen_random_uuid())
     tenant_id: Mapped[UUID] = mapped_column(ForeignKey("tenants.id"))
-    case_id: Mapped[UUID] = mapped_column(ForeignKey("cases.id"))
+    # None while the alert waits in the triage queue or after it was dismissed.
+    case_id: Mapped[UUID | None] = mapped_column(ForeignKey("cases.id"))
     source: Mapped[str]
     external_id: Mapped[str | None]
     group_key: Mapped[str | None]
     title: Mapped[str]
     payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
     received_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    status: Mapped[str] = mapped_column(server_default="promoted")
+    template: Mapped[str | None]
+    decision_reason: Mapped[str | None]
+    decided_by: Mapped[str | None]
+    decided_at: Mapped[datetime | None]
 
 
 class Asset(Base):

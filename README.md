@@ -1,6 +1,6 @@
 # Eagle Eye
 
-A SOC cyber incident response case management tool (formerly project_boxed_wine). See `PLAN.md` for scope and status and `docs/decisions.md` for recorded decisions.
+A SOC cyber incident response case management tool. See `PLAN.md` for scope and status and `docs/decisions.md` for recorded decisions.
 
 ## Local development
 

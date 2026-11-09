@@ -154,13 +154,13 @@ Every value is documented in `deploy/helm/casemgr/values.yaml` and `deploy/helm/
 Release images are signed with cosign (keyless, through GitHub's OIDC identity) and carry a signed SPDX SBOM attestation. The SBOMs are also attached to each GitHub release.
 
 ```sh
-cosign verify ghcr.io/<owner>/casemgr-backend@sha256:<digest> \
-  --certificate-identity-regexp 'https://github.com/<owner>/project_boxed_wine/.github/workflows/release.yml@refs/tags/v.*' \
+cosign verify ghcr.io/ejub-has/casemgr-backend@sha256:<digest> \
+  --certificate-identity-regexp 'https://github.com/ejub-has/eagleeyesoc/.github/workflows/release.yml@refs/tags/v.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 cosign verify-attestation --type spdxjson <same arguments>
 ```
 
-Enforce this at admission with a Kyverno `verifyImages` policy for `ghcr.io/<owner>/casemgr-*` that has the same issuer and subject.
+Enforce this at admission with a Kyverno `verifyImages` policy for `ghcr.io/ejub-has/casemgr-*` that has the same issuer and subject.
 
 ## 10. Upgrades
 

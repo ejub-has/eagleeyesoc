@@ -2,7 +2,7 @@
 
 Scope: every priority **M** item in `cyber-ir-case-management-requirements.md`, plus multi-tenancy (FR-101, a C item pulled in by decision). Other S and C items are out of scope unless an M item depends on them (noted inline). Each phase ends with its success criteria checked off; a phase is not started until the previous one is complete.
 
-Status: **Phases 0-10 complete (baseline imported from project_boxed_wine).** Eagle Eye work continues in Phases 11-13 below.
+Status: **Phases 0-10 complete (baseline import).** Eagle Eye work continues in Phases 11-13 below.
 
 ---
 

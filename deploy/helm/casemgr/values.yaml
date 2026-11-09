@@ -3,8 +3,8 @@ publicUrl: https://casemgr.example.com
 
 # Pin images by digest in production (the release workflow prints them).
 images:
-  backend: ghcr.io/tarnoldh65/casemgr-backend:0.1.0
-  frontend: ghcr.io/tarnoldh65/casemgr-frontend:0.1.0
+  backend: ghcr.io/ejub-has/casemgr-backend:0.1.0
+  frontend: ghcr.io/ejub-has/casemgr-frontend:0.1.0
   pullPolicy: IfNotPresent
 
 backend:

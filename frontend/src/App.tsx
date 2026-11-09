@@ -65,7 +65,7 @@ function Shell({ actions, children }: { actions?: ReactNode; children?: ReactNod
   return (
     <div className="shell">
       <header className="shell-header">
-        <span className="brand">Case Manager</span>
+        <span className="brand">Eagle Eye</span>
         <div className="shell-actions">{actions}</div>
       </header>
       <main className="shell-main">{children}</main>

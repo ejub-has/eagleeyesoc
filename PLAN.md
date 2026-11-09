@@ -193,6 +193,12 @@ README.md
 - [x] Helm values for the proof of value (`deploy/azure`: single-instance CloudNativePG with Blob backups, workload identities, Key Vault secrets through the CSI driver, Let's Encrypt HTTP-01); IMAP intake job disabled; `Deploy` workflow builds to ACR and installs through `az aks command invoke`
 - [ ] First apply and deploy in the Azure tenant; Entra sign-in and evidence upload verified on the live environment
 
+### Phase 14 - Alert triage (FR-05, FR-03)
+
+- [x] Alerts sent with triage on wait in a queue without a case unless their group has an open case; promote to a new case (alert's template) or into an open case, or dismiss; both need a reason and are audited
+- [x] Queue shows open cases sharing observables with each alert as likely duplicates
+- [x] Triage page in the web app; unit, API, and Playwright tests
+
 ---
 
 ## 3. Recommended deployment platforms and tools

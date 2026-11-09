@@ -17,6 +17,7 @@ Content-Type: application/json
 - `title_field`, `id_field`, and `group_field` name top-level keys in the JSON body.
 - Alerts with the same source and id are de-duplicated (HTTP 200, `duplicate: true`); alerts sharing a group key join the same open case.
 - The whole body is stored as the raw alert payload.
+- Add `&triage=true` to hold alerts in the **Triage** queue instead of opening a case for each one. Analysts then open a case, add the alert to an open case (the queue suggests cases that share observables), or dismiss it with a reason. Alerts whose group already has an open case still join it directly.
 
 ## CrowdStrike Falcon Fusion SOAR (US-2)
 

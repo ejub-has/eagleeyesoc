@@ -22,7 +22,7 @@ from app.routers import (
     tokens,
 )
 
-app = FastAPI(title="Case Manager")
+app = FastAPI(title="Eagle Eye")
 # Holds OIDC state, nonce, and PKCE verifier between login and callback only.
 app.add_middleware(
     SessionMiddleware,

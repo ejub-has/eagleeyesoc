@@ -40,7 +40,7 @@ test('timeline, notes with mentions, and comments', async ({ page, browser, requ
   await page.getByRole('button', { name: 'Add note' }).click()
   await expect(page.getByRole('heading', { name: 'Findings' })).toBeVisible()
   await expect(page.locator('.markdown img')).toHaveCount(0)
-  expect(await page.title()).toBe('Case Manager')
+  expect(await page.title()).toBe('Eagle Eye')
 
   await page.getByLabel('New comment').fill('Isolating web-01 now')
   await page.getByRole('button', { name: 'Post comment' }).click()

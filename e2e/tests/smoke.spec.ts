@@ -3,7 +3,7 @@ import { inBackend } from './backend'
 
 test('app offers sign in', async ({ page }) => {
   await page.goto('/')
-  await expect(page).toHaveTitle('Case Manager')
+  await expect(page).toHaveTitle('Eagle Eye')
   await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible()
 })
 

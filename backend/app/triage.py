@@ -9,7 +9,7 @@ from pydantic import BaseModel, StringConstraints
 from sqlalchemy import select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import cases
+from app import attack, cases
 from app.auth import TenantContext
 from app.cases import CaseCreate
 from app.models import Alert, Case, CaseObservable, Observable
@@ -150,7 +150,15 @@ async def promote(
         )
     alert.case_id = case.id
     _decide(alert, ctx, "promoted", body.reason)
-    await ctx.audit(db, "alert.promote", f"alert:{alert.id}", case=case.number, reason=body.reason)
+    mapped = attack.merge(case, [alert.title, alert.payload])
+    await ctx.audit(
+        db,
+        "alert.promote",
+        f"alert:{alert.id}",
+        case=case.number,
+        reason=body.reason,
+        attack=mapped,
+    )
     return PromoteOut(case_number=case.number, new_case=body.into is None)
 
 

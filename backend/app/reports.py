@@ -17,6 +17,7 @@ import docx
 from fpdf import FPDF, FontFace
 from fpdf.enums import XPos, YPos
 
+from app.attack import tactic_name
 from app.cases import CaseOut
 from app.tenant_config import TenantConfig
 
@@ -231,8 +232,11 @@ def technical(ctx: Context) -> list[Block]:
             ],
             "No events recorded.",
         ),
-        Heading("ATT&CK techniques"),
-        Paragraph(", ".join(c.attack_techniques) or "None recorded."),
+        Heading("ATT&CK tactics and techniques"),
+        Paragraph(
+            ", ".join(f"{t} {tactic_name(t)}" for t in c.attack_tactics) or "No tactics recorded."
+        ),
+        Paragraph(", ".join(c.attack_techniques) or "No techniques recorded."),
         Heading("Alerts"),
         *_table(
             ["Received", "Source", "Title"],

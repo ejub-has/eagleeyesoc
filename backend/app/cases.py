@@ -20,6 +20,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import (
+    attack,
     audit,
     escalation,
     evidence,
@@ -30,6 +31,7 @@ from app import (
     sla,
     tasks,
 )  # fmt: skip
+from app.attack import Tactic
 from app.auth import TenantContext, deny
 from app.evidence import EvidenceOut
 from app.journal import CommentOut, NoteOut, TimelineOut
@@ -114,6 +116,7 @@ class CaseFields(CaseSummary):
     data_regions: list[str]
     business_units: list[str]
     attack_techniques: list[str]
+    attack_tactics: list[Tactic]
     custom: dict[str, Any]
     resolution: Resolution | None
     detected_at: datetime | None
@@ -212,6 +215,7 @@ class CaseUpdate(BaseModel):
     data_regions: list[Region] | None = None
     business_units: list[Label] | None = None
     attack_techniques: list[Technique] | None = None
+    attack_tactics: list[Tactic] | None = None
     custom: dict[str, Any] | None = None
     resolution: Resolution | None = None
     detected_at: UtcDatetime | None = None
@@ -406,6 +410,7 @@ async def create_case(
         data_regions=[],
         business_units=[],
         attack_techniques=[],
+        attack_tactics=[],
         custom={},
         detected_at=body.detected_at,
     )
@@ -475,13 +480,15 @@ async def ingest(
     db.add(row)
     await db.flush()
     number = case.number if case else None
+    mapped = attack.merge(case, [alert.title, alert.payload]) if case else {}
     await audit.record(
         db,
         actor,
         "alert.ingest",
         f"alert:{row.id}",
         tenant_id,
-        {"case": number, "source": alert.source, "queued": queued},
+        {"case": number, "source": alert.source, "queued": queued}
+        | ({"attack": mapped} if mapped else {}),
     )
     return IntakeOut(
         alert_id=row.id, case_number=number, new_case=new_case, duplicate=False, queued=queued
@@ -702,7 +709,7 @@ async def merge(
 COPIED_ON_SPLIT = (
     "category", "impact", "urgency", "severity", "priority", "override_justification", "team",
     "owner_id", "tlp", "pap", "restricted", "regulated_data", "data_regions", "business_units",
-    "attack_techniques", "custom", "detected_at",
+    "attack_techniques", "attack_tactics", "custom", "detected_at",
 )  # fmt: skip
 
 

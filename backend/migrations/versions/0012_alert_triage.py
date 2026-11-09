@@ -26,7 +26,8 @@ UPGRADE = [
         ADD COLUMN decision_reason text,
         ADD COLUMN decided_by text,
         ADD COLUMN decided_at timestamptz,
-        ADD CONSTRAINT alerts_case_matches_status CHECK ((status = 'promoted') = (case_id IS NOT NULL))
+        ADD CONSTRAINT alerts_case_matches_status
+            CHECK ((status = 'promoted') = (case_id IS NOT NULL))
     """,
     "CREATE INDEX alerts_queue_idx ON alerts (tenant_id, received_at) WHERE status = 'new'",
 ]

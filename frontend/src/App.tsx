@@ -15,6 +15,7 @@ import { CasesPage } from './cases/CasesPage'
 import { ObservablePage } from './cases/ObservablePage'
 import { DashboardPage } from './DashboardPage'
 import { SearchPage } from './SearchPage'
+import { TriagePage } from './TriagePage'
 import { Settings } from './settings/Settings'
 
 const TENANT_KEY = 'casemgr.tenant'
@@ -52,6 +53,7 @@ export default function App() {
         <Route index element={<CasesPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="triage" element={<TriagePage />} />
         <Route path="cases/:number" element={<CasePage />} />
         <Route path="observables/:observableId" element={<ObservablePage />} />
         <Route path="settings" element={<Settings />} />
@@ -148,6 +150,7 @@ function TenantLayout({ me }: { me: Me }) {
           Cases
         </NavLink>
         <NavLink to={`/t/${tenant.slug}/dashboard`}>Dashboard</NavLink>
+        <NavLink to={`/t/${tenant.slug}/triage`}>Triage</NavLink>
         <NavLink to={`/t/${tenant.slug}/search`}>Search</NavLink>
         {isAdmin && <NavLink to={`/t/${tenant.slug}/settings`}>Settings</NavLink>}
       </nav>

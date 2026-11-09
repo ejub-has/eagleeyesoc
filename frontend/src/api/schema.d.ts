@@ -536,6 +536,8 @@ export interface paths {
         /**
          * Post Webhook
          * @description Accept any JSON object; query parameters name the top-level keys to map.
+         *
+         *     With triage=true the alert waits in the triage queue instead of opening a case.
          */
         post: operations["post_webhook_api_tenants__slug__webhooks__source__post"];
         delete?: never;
@@ -1087,6 +1089,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tenants/{slug}/triage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Queue
+         * @description Alerts waiting for a decision (sent with triage on), oldest first.
+         */
+        get: operations["list_queue_api_tenants__slug__triage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tenants/{slug}/triage/{alert_id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Promote Alert
+         * @description Open a case from the alert's template, or attach the alert to an open case.
+         */
+        post: operations["promote_alert_api_tenants__slug__triage__alert_id__promote_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tenants/{slug}/triage/{alert_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss Alert
+         * @description Close the alert as a false positive or noise, with the reason.
+         */
+        post: operations["dismiss_alert_api_tenants__slug__triage__alert_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -1224,6 +1286,11 @@ export interface components {
             payload: {
                 [key: string]: unknown;
             };
+            /**
+             * Triage
+             * @default false
+             */
+            triage: boolean;
         };
         /** AlertOut */
         AlertOut: {
@@ -1764,6 +1831,11 @@ export interface components {
              */
             recorded_at: string;
         };
+        /** DismissIn */
+        DismissIn: {
+            /** Reason */
+            reason: string;
+        };
         /** EscalationRule */
         EscalationRule: {
             /** Name */
@@ -1866,11 +1938,16 @@ export interface components {
              */
             alert_id: string;
             /** Case Number */
-            case_number: number;
+            case_number: number | null;
             /** New Case */
             new_case: boolean;
             /** Duplicate */
             duplicate: boolean;
+            /**
+             * Queued
+             * @default false
+             */
+            queued: boolean;
         };
         /**
          * Kind
@@ -1901,6 +1978,15 @@ export interface components {
             on: boolean;
             /** Reason */
             reason: string;
+        };
+        /** Match */
+        Match: {
+            /** Case Number */
+            case_number: number;
+            /** Case Title */
+            case_title: string;
+            /** Observables */
+            observables: string[];
         };
         /** MeOut */
         MeOut: {
@@ -2166,6 +2252,47 @@ export interface components {
              */
             depends_on: string[];
             when?: components["schemas"]["Condition"] | null;
+        };
+        /** PromoteIn */
+        PromoteIn: {
+            /** Reason */
+            reason: string;
+            /** Into */
+            into?: number | null;
+        };
+        /** PromoteOut */
+        PromoteOut: {
+            /** Case Number */
+            case_number: number;
+            /** New Case */
+            new_case: boolean;
+        };
+        /** QueuedAlert */
+        QueuedAlert: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Source */
+            source: string;
+            /** External Id */
+            external_id: string | null;
+            /** Title */
+            title: string;
+            /** Template */
+            template: string | null;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Matches */
+            matches: components["schemas"]["Match"][];
         };
         /**
          * Recipient
@@ -4148,6 +4275,7 @@ export interface operations {
                 title_field?: string;
                 id_field?: string | null;
                 group_field?: string | null;
+                triage?: boolean;
             };
             header?: never;
             path: {
@@ -5268,6 +5396,107 @@ export interface operations {
                     "application/pdf": string;
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_queue_api_tenants__slug__triage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueuedAlert"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    promote_alert_api_tenants__slug__triage__alert_id__promote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromoteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromoteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_alert_api_tenants__slug__triage__alert_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DismissIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

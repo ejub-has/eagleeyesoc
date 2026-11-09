@@ -36,8 +36,12 @@ async def post_webhook(
     title_field: str = "title",
     id_field: str | None = None,
     group_field: str | None = None,
+    triage: bool = False,
 ) -> IntakeOut:
-    """Accept any JSON object; query parameters name the top-level keys to map."""
+    """Accept any JSON object; query parameters name the top-level keys to map.
+
+    With triage=true the alert waits in the triage queue instead of opening a case.
+    """
 
     def field(name: str | None) -> str | None:
         value = body.get(name) if name else None
@@ -50,5 +54,6 @@ async def post_webhook(
         external_id=field(id_field),
         group_key=field(group_field),
         payload=body,
+        triage=triage,
     )
     return await _ingest(db, ctx, alert, response)

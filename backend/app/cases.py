@@ -233,13 +233,18 @@ class AlertIn(BaseModel):
     group_key: Ref | None = None
     detected_at: UtcDatetime | None = None
     payload: dict[str, Any] = {}
+    # Hold the alert in the triage queue instead of opening a case (unless its group
+    # already has an open case).
+    triage: bool = False
 
 
 class IntakeOut(BaseModel):
     alert_id: UUID
-    case_number: int
+    # None while the alert waits in the triage queue (queued) or after it was dismissed.
+    case_number: int | None
     new_case: bool
     duplicate: bool
+    queued: bool = False
 
 
 class MergeIn(BaseModel):
@@ -431,9 +436,12 @@ async def ingest(
         )
         if existing is not None:
             number = await db.scalar(select(Case.number).where(Case.id == existing.case_id))
-            assert number is not None  # noqa: S101 - every alert belongs to a case
             return IntakeOut(
-                alert_id=existing.id, case_number=number, new_case=False, duplicate=True
+                alert_id=existing.id,
+                case_number=number,
+                new_case=False,
+                duplicate=True,
+                queued=existing.status == "new",
             )
 
     case = None
@@ -445,14 +453,19 @@ async def ingest(
             .order_by(Alert.received_at.desc())
             .limit(1)
         )
-    new_case = case is None
-    if case is None:
+    queued = case is None and alert.triage
+    new_case = case is None and not alert.triage
+    if queued:
+        config.template(alert.template) or invalid("unknown template", "template")
+    elif case is None:
         create = CaseCreate.model_validate(alert.model_dump(include=set(CaseCreate.model_fields)))
         case = await create_case(db, tenant_id, config, actor, create, source=alert.source)
 
     row = Alert(
         tenant_id=tenant_id,
-        case_id=case.id,
+        case_id=case.id if case else None,
+        status="new" if queued else "promoted",
+        template=alert.template,
         source=alert.source,
         external_id=alert.external_id,
         group_key=alert.group_key,
@@ -461,15 +474,18 @@ async def ingest(
     )
     db.add(row)
     await db.flush()
+    number = case.number if case else None
     await audit.record(
         db,
         actor,
         "alert.ingest",
         f"alert:{row.id}",
         tenant_id,
-        {"case": case.number, "source": alert.source},
+        {"case": number, "source": alert.source, "queued": queued},
     )
-    return IntakeOut(alert_id=row.id, case_number=case.number, new_case=new_case, duplicate=False)
+    return IntakeOut(
+        alert_id=row.id, case_number=number, new_case=new_case, duplicate=False, queued=queued
+    )
 
 
 async def update_case(

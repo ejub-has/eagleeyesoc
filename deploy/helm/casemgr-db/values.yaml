@@ -17,6 +17,9 @@ resources:
   limits: { memory: 4Gi }
 
 backup:
+  # "s3", or "azure" (destinationPath https://<account>.blob.core.windows.net/<container>/,
+  # authenticated with workloadIdentity.clientId).
+  provider: s3
   # Bucket with Object Lock (compliance mode) and default encryption.
   destinationPath: s3://casemgr-backups/
   # Empty for AWS S3; set for S3-compatible stores.
@@ -30,6 +33,10 @@ backup:
   retention: 30d
   # Folder in the bucket this cluster writes to. Give a restored cluster a new one.
   serverName: casemgr-db
+
+# Entra workload identity for the instance pods (Azure backups).
+workloadIdentity:
+  clientId: ""
 
 # Bootstrap from a backup instead of an empty database (restore drills and disaster recovery).
 recovery:

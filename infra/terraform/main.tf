@@ -20,6 +20,27 @@ resource "azurerm_resource_group" "main" {
   tags     = local.tags
 }
 
+# Nodes sit in their own subnet so Key Vault can admit them through a service endpoint
+# (pods use overlay addresses and leave through the node).
+resource "azurerm_virtual_network" "main" {
+  name                = "vnet-${local.base}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+  address_space       = ["10.10.0.0/16"]
+  tags                = local.tags
+}
+
+resource "azurerm_subnet" "nodes" {
+  name                 = "nodes"
+  resource_group_name  = azurerm_resource_group.main.name
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefixes     = ["10.10.0.0/22"]
+
+  service_endpoint {
+    service = "Microsoft.KeyVault"
+  }
+}
+
 # Static address for the Envoy Gateway load balancer; its DNS label is the public hostname.
 resource "azurerm_public_ip" "gateway" {
   name                = "pip-${local.base}"
@@ -52,6 +73,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     os_disk_size_gb             = 64
     os_sku                      = "AzureLinux"
     temporary_name_for_rotation = "rotate"
+    vnet_subnet_id              = azurerm_subnet.nodes.id
     upgrade_settings {
       max_surge = "1"
     }
@@ -68,6 +90,11 @@ resource "azurerm_kubernetes_cluster" "main" {
   azure_active_directory_role_based_access_control {
     tenant_id          = data.azurerm_client_config.current.tenant_id
     azure_rbac_enabled = true
+  }
+
+  # Secrets Store CSI driver: syncs Key Vault secrets into the casemgr Secret.
+  key_vault_secrets_provider {
+    secret_rotation_enabled = true
   }
 
   api_server_access_profile {
@@ -160,9 +187,10 @@ resource "azurerm_key_vault" "main" {
 
   # Only Terraform (control plane) and admins from listed addresses reach the secrets.
   network_acls {
-    default_action = "Deny"
-    bypass         = "AzureServices"
-    ip_rules       = var.admin_ip_ranges
+    default_action             = "Deny"
+    bypass                     = "AzureServices"
+    ip_rules                   = var.admin_ip_ranges
+    virtual_network_subnet_ids = [azurerm_subnet.nodes.id]
   }
 }
 
@@ -173,12 +201,16 @@ resource "azurerm_role_assignment" "admin_secrets" {
   principal_id         = each.value
 }
 
-# Workload identities: the backend and jobs (evidence), and the CloudNativePG cluster (backups).
+# Workload identities: the backend and jobs (evidence, Key Vault secrets), and the
+# CloudNativePG cluster (backups). casemgr-secrets runs the pod that syncs the secrets.
 locals {
   workloads = {
-    backend = { subject = "system:serviceaccount:casemgr:casemgr-backend", container = "evidence" }
-    db      = { subject = "system:serviceaccount:casemgr:casemgr-db", container = "backups" }
+    backend = { subjects = ["casemgr-backend", "casemgr-secrets"], container = "evidence" }
+    db      = { subjects = ["casemgr-db"], container = "backups" }
   }
+  federations = merge([
+    for k, v in local.workloads : { for s in v.subjects : "${k}-${s}" => { identity = k, subject = s } }
+  ]...)
 }
 
 resource "azurerm_user_assigned_identity" "workload" {
@@ -190,11 +222,11 @@ resource "azurerm_user_assigned_identity" "workload" {
 }
 
 resource "azurerm_federated_identity_credential" "workload" {
-  for_each                  = local.workloads
-  name                      = each.key
-  user_assigned_identity_id = azurerm_user_assigned_identity.workload[each.key].id
+  for_each                  = local.federations
+  name                      = each.value.subject
+  user_assigned_identity_id = azurerm_user_assigned_identity.workload[each.value.identity].id
   issuer                    = azurerm_kubernetes_cluster.main.oidc_issuer_url
-  subject                   = each.value.subject
+  subject                   = "system:serviceaccount:casemgr:${each.value.subject}"
   audience                  = ["api://AzureADTokenExchange"]
 }
 
@@ -212,4 +244,35 @@ resource "azurerm_role_assignment" "backend_delegator" {
   role_definition_name = "Storage Blob Delegator"
   principal_id         = azurerm_user_assigned_identity.workload["backend"].principal_id
   principal_type       = "ServicePrincipal"
+}
+
+resource "azurerm_role_assignment" "backend_secrets" {
+  scope                = azurerm_key_vault.main.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.workload["backend"].principal_id
+  principal_type       = "ServicePrincipal"
+}
+
+# Images built by the Deploy workflow; the nodes pull with their kubelet identity.
+resource "azurerm_container_registry" "main" {
+  name                = "cr${local.compact}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+  sku                 = "Basic"
+  admin_enabled       = false
+  tags                = local.tags
+}
+
+resource "azurerm_role_assignment" "aks_pull" {
+  scope                = azurerm_container_registry.main.id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
+  principal_type       = "ServicePrincipal"
+}
+
+resource "azurerm_role_assignment" "admin_push" {
+  for_each             = local.admins
+  scope                = azurerm_container_registry.main.id
+  role_definition_name = "AcrPush"
+  principal_id         = each.value
 }

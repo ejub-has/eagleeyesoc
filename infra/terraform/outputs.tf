@@ -35,3 +35,7 @@ output "workload_client_ids" {
   description = "Client IDs for the azure.workload.identity/client-id service account annotation."
   value       = { for k, v in azurerm_user_assigned_identity.workload : k => v.client_id }
 }
+
+output "registry" {
+  value = azurerm_container_registry.main.login_server
+}

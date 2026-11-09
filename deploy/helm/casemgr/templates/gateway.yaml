@@ -31,6 +31,18 @@ spec:
       allowedRoutes:
         namespaces:
           from: Same
+    {{- if .Values.gateway.http01 }}
+    # Plain HTTP only for ACME HTTP-01 challenges; cert-manager adds the challenge route.
+    - name: http
+      protocol: HTTP
+      port: 80
+      {{- with .Values.gateway.hostname }}
+      hostname: {{ . }}
+      {{- end }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+    {{- end }}
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: ClientTrafficPolicy
@@ -55,6 +67,7 @@ metadata:
 spec:
   parentRefs:
     - name: {{ .Release.Name }}
+      sectionName: https
   rules:
     - matches:
         - path: { type: PathPrefix, value: /api/ }
@@ -74,6 +87,7 @@ metadata:
 spec:
   parentRefs:
     - name: {{ .Release.Name }}
+      sectionName: https
   rules:
     - backendRefs:
         - name: {{ .Release.Name }}-frontend

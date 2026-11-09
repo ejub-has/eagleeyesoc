@@ -190,7 +190,8 @@ README.md
 
 - [x] Terraform: AKS (cheapest viable), DNS label hostname, Key Vault, storage; monthly cost within about 200 USD (`infra/terraform`, `docs/azure.md`)
 - [x] Port `backend/app/storage.py` from S3 to Azure Blob Storage: browser block uploads through user delegation SAS URLs, block list commit, streaming download, delete; Azurite replaces SeaweedFS for evidence in tests, compose, and kind; Helm chart gains a workload identity service account
-- [ ] Helm values for the proof of value (single-instance CloudNativePG, Azure Blob); synthetic alerts only; IMAP intake job disabled
+- [x] Helm values for the proof of value (`deploy/azure`: single-instance CloudNativePG with Blob backups, workload identities, Key Vault secrets through the CSI driver, Let's Encrypt HTTP-01); IMAP intake job disabled; `Deploy` workflow builds to ACR and installs through `az aks command invoke`
+- [ ] First apply and deploy in the Azure tenant; Entra sign-in and evidence upload verified on the live environment
 
 ---
 

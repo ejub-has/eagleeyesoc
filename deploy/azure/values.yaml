@@ -1,0 +1,35 @@
+# casemgr chart values for the Azure proof of value. deploy/azure/install.sh adds the
+# environment-specific values (hostname, images, identities, IdP) from Terraform outputs.
+backend:
+  replicas: 2
+  maxReplicas: 3
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 1Gi }
+
+frontend:
+  replicas: 1
+
+jobResources:
+  requests: { cpu: 50m, memory: 256Mi }
+  limits: { memory: 1Gi }
+
+config:
+  OIDC_SCOPE: openid profile email offline_access
+  OIDC_ROLES_CLAIM: roles
+  BLOB_CONTAINER: evidence
+  # No outbound mail in the proof of value; escalation emails are skipped.
+  SMTP_HOST: null
+  MAIL_FROM: null
+
+jobs:
+  # Alerts arrive by push only (docs/decisions.md).
+  email_intake: null
+
+# Terraform creates the evidence container.
+createContainer: false
+
+gateway:
+  clusterIssuer: letsencrypt
+  http01: true
+  envoyProxy: azure-lb

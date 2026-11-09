@@ -11,6 +11,11 @@ spec:
     {{- with $backup.endpointURL }}
     endpointURL: {{ . | quote }}
     {{- end }}
+    {{- if eq $backup.provider "azure" }}
+    # Workload identity of the instance pods (workloadIdentity.clientId).
+    azureCredentials:
+      inheritFromAzureAD: true
+    {{- else }}
     s3Credentials:
       {{- if $backup.credentialsSecret }}
       accessKeyId:
@@ -22,6 +27,7 @@ spec:
       {{- else }}
       inheritFromIAMRole: true
       {{- end }}
+    {{- end }}
     wal:
       compression: gzip
       {{- with $backup.encryption }}
@@ -58,6 +64,15 @@ spec:
     # Clients must use TLS (CloudNativePG issues the server certificate and CA).
     pg_hba:
       - hostnossl all all all reject
+  {{- with .Values.workloadIdentity.clientId }}
+  inheritedMetadata:
+    labels:
+      azure.workload.identity/use: "true"
+  serviceAccountTemplate:
+    metadata:
+      annotations:
+        azure.workload.identity/client-id: {{ . | quote }}
+  {{- end }}
   affinity:
     enablePodAntiAffinity: true
     topologyKey: kubernetes.io/hostname

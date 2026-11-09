@@ -6,10 +6,15 @@ images:
   frontend: casemgr-frontend:kind
   pullPolicy: Never
 
+# Small enough that the restore drill's second copy fits on a 2-CPU machine (CI runner).
 backend:
+  replicas: 2
   resources:
-    requests: { cpu: 100m, memory: 256Mi }
+    requests: { cpu: 50m, memory: 256Mi }
     limits: { memory: 1Gi }
+
+frontend:
+  replicas: 1
 
 config:
   OIDC_METADATA_URL: http://keycloak.casemgr-dev:8080/realms/casemgr/.well-known/openid-configuration

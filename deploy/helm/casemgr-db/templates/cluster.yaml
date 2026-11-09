@@ -47,10 +47,12 @@ spec:
   {{- end }}
   # A commit returns only once a standby also has it, so a failover loses no data.
   postgresql:
+    {{- if gt (int .Values.instances) 1 }}
     synchronous:
       method: any
       number: 1
       dataDurability: required
+    {{- end }}
     parameters:
       archive_timeout: 5min
     # Clients must use TLS (CloudNativePG issues the server certificate and CA).

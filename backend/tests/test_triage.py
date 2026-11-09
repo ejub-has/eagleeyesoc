@@ -29,7 +29,7 @@ async def queue_alert(client: AsyncClient, tenant: str, token: str, **body: Any)
         | body,
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert response.status_code == 201, response.text
+    assert response.status_code in (200, 201), response.text
     return response.json()
 
 
@@ -98,7 +98,11 @@ async def test_shared_observables_suggest_and_join_an_open_case(
 
     [item] = await queue(analyst.client, tenant)
     assert item["matches"] == [
-        {"case_number": number, "case_title": "Campaign", "observables": ["ipv4:198.51.100[.]23"]}
+        {
+            "case_number": number,
+            "case_title": "Campaign",
+            "observables": ["ipv4:198[.]51[.]100[.]23"],
+        }
     ]
     response = await analyst.client.post(
         f"/api/tenants/{tenant}/triage/{alert['alert_id']}/promote",

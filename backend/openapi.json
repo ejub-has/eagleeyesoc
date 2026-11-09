@@ -1722,7 +1722,7 @@
           "intake"
         ],
         "summary": "Post Webhook",
-        "description": "Accept any JSON object; query parameters name the top-level keys to map.",
+        "description": "Accept any JSON object; query parameters name the top-level keys to map.\n\nWith triage=true the alert waits in the triage queue instead of opening a case.",
         "operationId": "post_webhook_api_tenants__slug__webhooks__source__post",
         "parameters": [
           {
@@ -1795,6 +1795,16 @@
                 }
               ],
               "title": "Group Field"
+            }
+          },
+          {
+            "name": "triage",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Triage"
             }
           }
         ],
@@ -3752,6 +3762,172 @@
         }
       }
     },
+    "/api/tenants/{slug}/triage": {
+      "get": {
+        "tags": [
+          "triage"
+        ],
+        "summary": "List Queue",
+        "description": "Alerts waiting for a decision (sent with triage on), oldest first.",
+        "operationId": "list_queue_api_tenants__slug__triage_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QueuedAlert"
+                  },
+                  "title": "Response List Queue Api Tenants  Slug  Triage Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tenants/{slug}/triage/{alert_id}/promote": {
+      "post": {
+        "tags": [
+          "triage"
+        ],
+        "summary": "Promote Alert",
+        "description": "Open a case from the alert's template, or attach the alert to an open case.",
+        "operationId": "promote_alert_api_tenants__slug__triage__alert_id__promote_post",
+        "parameters": [
+          {
+            "name": "alert_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Alert Id"
+            }
+          },
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromoteIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromoteOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tenants/{slug}/triage/{alert_id}/dismiss": {
+      "post": {
+        "tags": [
+          "triage"
+        ],
+        "summary": "Dismiss Alert",
+        "description": "Close the alert as a false positive or noise, with the reason.",
+        "operationId": "dismiss_alert_api_tenants__slug__triage__alert_id__dismiss_post",
+        "parameters": [
+          {
+            "name": "alert_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Alert Id"
+            }
+          },
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DismissIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/healthz": {
       "get": {
         "summary": "Healthz",
@@ -4060,6 +4236,11 @@
             "type": "object",
             "title": "Payload",
             "default": {}
+          },
+          "triage": {
+            "type": "boolean",
+            "title": "Triage",
+            "default": false
           }
         },
         "type": "object",
@@ -5701,6 +5882,21 @@
         ],
         "title": "DisclosureOut"
       },
+      "DismissIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "DismissIn"
+      },
       "EscalationRule": {
         "properties": {
           "name": {
@@ -5959,7 +6155,14 @@
             "title": "Alert Id"
           },
           "case_number": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Case Number"
           },
           "new_case": {
@@ -5969,6 +6172,11 @@
           "duplicate": {
             "type": "boolean",
             "title": "Duplicate"
+          },
+          "queued": {
+            "type": "boolean",
+            "title": "Queued",
+            "default": false
           }
         },
         "type": "object",
@@ -6055,6 +6263,32 @@
         ],
         "title": "MarkingIn",
         "description": "Turn a legal marking (hold or privilege) on or off, with the reason recorded."
+      },
+      "Match": {
+        "properties": {
+          "case_number": {
+            "type": "integer",
+            "title": "Case Number"
+          },
+          "case_title": {
+            "type": "string",
+            "title": "Case Title"
+          },
+          "observables": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Observables"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_number",
+          "case_title",
+          "observables"
+        ],
+        "title": "Match"
       },
       "MeOut": {
         "properties": {
@@ -6676,6 +6910,118 @@
           "title"
         ],
         "title": "PlaybookTask"
+      },
+      "PromoteIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "into": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Into"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "PromoteIn"
+      },
+      "PromoteOut": {
+        "properties": {
+          "case_number": {
+            "type": "integer",
+            "title": "Case Number"
+          },
+          "new_case": {
+            "type": "boolean",
+            "title": "New Case"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_number",
+          "new_case"
+        ],
+        "title": "PromoteOut"
+      },
+      "QueuedAlert": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/Match"
+            },
+            "type": "array",
+            "title": "Matches"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "external_id",
+          "title",
+          "template",
+          "received_at",
+          "payload",
+          "matches"
+        ],
+        "title": "QueuedAlert"
       },
       "Recipient": {
         "type": "string",

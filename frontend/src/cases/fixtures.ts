@@ -78,6 +78,7 @@ export const CASE: Case = {
   data_regions: [],
   business_units: [],
   attack_techniques: [],
+  attack_tactics: [],
   custom: {},
   resolution: null,
   merged_into: null,

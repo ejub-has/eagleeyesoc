@@ -130,6 +130,7 @@ class Case(Base):
     data_regions: Mapped[list[str]] = mapped_column(ARRAY(Text))
     business_units: Mapped[list[str]] = mapped_column(ARRAY(Text))
     attack_techniques: Mapped[list[str]] = mapped_column(ARRAY(Text))
+    attack_tactics: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}")
     custom: Mapped[dict[str, Any]] = mapped_column(JSONB)
     resolution: Mapped[str | None]
     merged_into_id: Mapped[UUID | None] = mapped_column(ForeignKey("cases.id"))

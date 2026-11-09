@@ -1448,6 +1448,8 @@ export interface components {
             business_units: string[];
             /** Attack Techniques */
             attack_techniques: string[];
+            /** Attack Tactics */
+            attack_tactics: components["schemas"]["Tactic"][];
             /** Custom */
             custom: {
                 [key: string]: unknown;
@@ -1564,6 +1566,8 @@ export interface components {
             business_units?: string[] | null;
             /** Attack Techniques */
             attack_techniques?: string[] | null;
+            /** Attack Tactics */
+            attack_tactics?: components["schemas"]["Tactic"][] | null;
             /** Custom */
             custom?: {
                 [key: string]: unknown;
@@ -2486,6 +2490,11 @@ export interface components {
              */
             require_pir: boolean;
         };
+        /**
+         * Tactic
+         * @enum {string}
+         */
+        Tactic: "TA0043" | "TA0042" | "TA0001" | "TA0002" | "TA0003" | "TA0004" | "TA0005" | "TA0006" | "TA0007" | "TA0008" | "TA0009" | "TA0011" | "TA0010" | "TA0040";
         /** TaskIn */
         TaskIn: {
             /** Title */

@@ -58,12 +58,15 @@ test('saves only the changed fields', async () => {
   fireEvent.change(screen.getByLabelText('Handler'), { target: { value: 'asmith' } })
   fireEvent.click(screen.getByLabelText('PII'))
   fireEvent.change(screen.getByLabelText('ATT&CK techniques'), { target: { value: 'T1566, T1078' } })
+  fireEvent.click(screen.getByLabelText('Lateral Movement'))
+  fireEvent.click(screen.getByLabelText('Initial Access'))
   fireEvent.click(screen.getByRole('button', { name: 'Save case' }))
 
   expect(await body(requests, 'PATCH', BASE)).toEqual({
     title: 'Credential phish',
     regulated_data: ['pii'],
     attack_techniques: ['T1566', 'T1078'],
+    attack_tactics: ['TA0001', 'TA0008'],
     custom: { vector: 'email', records: 12, handler: 'asmith' },
   })
   expect(await screen.findByRole('status')).toHaveTextContent('Saved')

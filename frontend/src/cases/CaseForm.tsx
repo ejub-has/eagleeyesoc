@@ -10,6 +10,7 @@ import {
   type Pap,
   type Regulated,
   type Resolution,
+  type Tactic,
   type TenantConfig,
   type Tlp,
 } from '../api/client'
@@ -18,6 +19,23 @@ import { splitList } from '../settings/editing'
 const TLPS: Tlp[] = ['clear', 'green', 'amber', 'amber+strict', 'red']
 const PAPS: Pap[] = ['clear', 'green', 'amber', 'red']
 const REGULATED: Regulated[] = ['pii', 'phi', 'pci', 'cui']
+/** MITRE ATT&CK Enterprise tactics, in kill-chain order. */
+const TACTICS: [Tactic, string][] = [
+  ['TA0043', 'Reconnaissance'],
+  ['TA0042', 'Resource Development'],
+  ['TA0001', 'Initial Access'],
+  ['TA0002', 'Execution'],
+  ['TA0003', 'Persistence'],
+  ['TA0004', 'Privilege Escalation'],
+  ['TA0005', 'Defense Evasion'],
+  ['TA0006', 'Credential Access'],
+  ['TA0007', 'Discovery'],
+  ['TA0008', 'Lateral Movement'],
+  ['TA0009', 'Collection'],
+  ['TA0011', 'Command and Control'],
+  ['TA0010', 'Exfiltration'],
+  ['TA0040', 'Impact'],
+]
 const RESOLUTIONS: Resolution[] = ['true_positive', 'false_positive', 'benign', 'duplicate']
 
 type CustomValue = string | number
@@ -41,6 +59,7 @@ interface Draft {
   regions: string
   units: string
   techniques: string
+  tactics: Tactic[]
   detected: string
   custom: Record<string, CustomValue>
 }
@@ -71,6 +90,7 @@ function toDraft(c: Case): Draft {
     regions: c.data_regions.join(', '),
     units: c.business_units.join(', '),
     techniques: c.attack_techniques.join(', '),
+    tactics: c.attack_tactics,
     detected: toLocalInput(c.detected_at),
     custom: c.custom as Record<string, CustomValue>,
   }
@@ -95,6 +115,7 @@ function toUpdate(d: Draft, config: TenantConfig): CaseUpdate {
     data_regions: splitList(d.regions),
     business_units: splitList(d.units),
     attack_techniques: splitList(d.techniques),
+    attack_tactics: TACTICS.map(([id]) => id).filter((id) => d.tactics.includes(id)),
     detected_at: d.detected ? new Date(d.detected).toISOString() : null,
     custom: Object.fromEntries(Object.entries(d.custom).filter(([, v]) => v !== '')),
   }
@@ -331,6 +352,21 @@ export function CaseForm({
           Business units{' '}
           <input value={draft.units} onChange={(e) => set({ units: e.target.value })} />
         </label>
+        <fieldset className="wide">
+          <legend>ATT&CK tactics</legend>
+          {TACTICS.map(([id, name]) => (
+            <label key={id}>
+              <input
+                type="checkbox"
+                checked={draft.tactics.includes(id)}
+                onChange={(e) =>
+                  set({ tactics: e.target.checked ? [...draft.tactics, id] : draft.tactics.filter((x) => x !== id) })
+                }
+              />{' '}
+              {name}
+            </label>
+          ))}
+        </fieldset>
         <label>
           ATT&CK techniques{' '}
           <input

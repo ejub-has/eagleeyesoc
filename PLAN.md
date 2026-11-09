@@ -199,6 +199,12 @@ README.md
 - [x] Queue shows open cases sharing observables with each alert as likely duplicates
 - [x] Triage page in the web app; unit, API, and Playwright tests
 
+### Phase 15 - ATT&CK mapping (FR-13, part)
+
+- [x] Cases record ATT&CK tactics (TA IDs) beside techniques; editable in the case form, shown in reports
+- [x] Alerts fill both from technique IDs, tactic IDs, and exact tactic names in their title and payload (CrowdStrike `tactic`/`technique`, Elastic `threat.*`), when they open or join a case or are promoted; additions are audited
+- [ ] VERIS and NIST 800-61 category mapping (remaining part of FR-13)
+
 ---
 
 ## 3. Recommended deployment platforms and tools

@@ -161,6 +161,7 @@ async def test_update_changes_fields_and_is_audited(
         regulated_data=["pii"],
         data_regions=["EU"],
         business_units=["Finance"],
+        tags=["vip", "payroll"],
         attack_techniques=["T1566.001"],
         detected_at="2026-10-30T12:00:00Z",
         owner_id=str(analyst.id),
@@ -169,6 +170,7 @@ async def test_update_changes_fields_and_is_audited(
     body = response.json()
     assert body["title"] == "Credential phish"
     assert body["regulated_data"] == ["pii"]
+    assert body["tags"] == ["vip", "payroll"]
     assert body["detected_at"] == "2026-10-30T12:00:00Z"
     async with owner.connect() as conn:
         detail = await conn.scalar(

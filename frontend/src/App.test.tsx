@@ -1,8 +1,9 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
 import App from './App'
 import type { Me } from './api/client'
+import { CASE, CONFIG, MEMBERS } from './cases/fixtures'
 import { json, mockApi, renderWithQuery } from './testing'
 
 const ME: Me = {
@@ -107,6 +108,43 @@ test('quick search opens the search page', async () => {
   fireEvent.submit(box.form!)
   expect(await screen.findByRole('heading', { name: 'Search' })).toBeInTheDocument()
   expect(screen.getByLabelText('Search terms')).toHaveValue('evil.example')
+})
+
+test('opens a case over the list and closes back to it', async () => {
+  mockApi({
+    'GET /api/me': () => json(ME),
+    'GET /api/tenants/detect-respond/config': () => json(CONFIG),
+    'GET /api/tenants/detect-respond/members': () => json(MEMBERS),
+    'GET /api/tenants/detect-respond/cases': () => json([CASE]),
+    'GET /api/tenants/detect-respond/cases/7': () => json(CASE),
+  })
+  renderApp()
+  fireEvent.click(await screen.findByRole('link', { name: 'Suspicious email' }))
+  const drawer = await screen.findByRole('dialog', { name: 'Case 7' })
+  expect(await within(drawer).findByRole('heading', { name: '#7 Suspicious email' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Cases', hidden: true })).toBeInTheDocument()
+
+  fireEvent.click(within(drawer).getByRole('button', { name: 'Close case' }))
+  await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  expect(screen.getByRole('link', { name: 'Suspicious email' })).toBeInTheDocument()
+})
+
+test('a case opened from the dashboard keeps the dashboard underneath', async () => {
+  mockApi({
+    'GET /api/me': () => json(ME),
+    'GET /api/tenants/detect-respond/config': () => json(CONFIG),
+    'GET /api/tenants/detect-respond/members': () => json(MEMBERS),
+    'GET /api/tenants/detect-respond/cases/7': () => json(CASE),
+    'GET /api/tenants/detect-respond/clocks': () =>
+      json([{ ...CASE.clocks[0], status: 'pending', case_number: 7 }]),
+  })
+  renderApp('/t/detect-respond/dashboard')
+  fireEvent.click(await screen.findByRole('link', { name: '#7' }))
+  await screen.findByRole('dialog', { name: 'Case 7' })
+  expect(screen.getByRole('heading', { name: 'Dashboard', hidden: true })).toBeInTheDocument()
+  fireEvent.keyDown(document.body, { key: 'Escape' })
+  await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
 })
 
 test('explains when the user has no tenants', async () => {

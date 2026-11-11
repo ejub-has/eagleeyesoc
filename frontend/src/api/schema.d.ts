@@ -1425,6 +1425,8 @@ export interface components {
             sla_status?: ("met" | "late" | "pending" | "warning" | "breached") | null;
             /** Sla Due At */
             sla_due_at?: string | null;
+            /** Tags */
+            tags: string[];
             /**
              * Id
              * Format: uuid
@@ -1537,6 +1539,8 @@ export interface components {
             sla_status?: ("met" | "late" | "pending" | "warning" | "breached") | null;
             /** Sla Due At */
             sla_due_at?: string | null;
+            /** Tags */
+            tags: string[];
         };
         /**
          * CaseUpdate
@@ -1568,6 +1572,8 @@ export interface components {
             data_regions?: string[] | null;
             /** Business Units */
             business_units?: string[] | null;
+            /** Tags */
+            tags?: string[] | null;
             /** Attack Techniques */
             attack_techniques?: string[] | null;
             /** Attack Tactics */

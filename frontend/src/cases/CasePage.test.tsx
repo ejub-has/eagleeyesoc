@@ -72,6 +72,23 @@ test('saves only the changed fields', async () => {
   expect(await screen.findByRole('status')).toHaveTextContent('Saved')
 })
 
+test('adds and removes free-form tags and shows them in the header', async () => {
+  const requests = api({ ...CASE, tags: ['vip'] })
+  open()
+  const add = await screen.findByLabelText('Add tag')
+  fireEvent.change(add, { target: { value: 'payroll' } })
+  fireEvent.keyDown(add, { key: 'Enter' })
+  fireEvent.change(add, { target: { value: 'VIP' } })
+  fireEvent.keyDown(add, { key: 'Enter' })
+  expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Remove tag vip' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save case' }))
+
+  expect(await body(requests, 'PATCH', BASE)).toEqual({ tags: ['payroll'] })
+  expect(await screen.findByRole('status')).toHaveTextContent('Saved')
+  expect(screen.getByRole('banner')).toHaveTextContent('payroll')
+})
+
 test('closing asks for a resolution and overriding asks for a justification', async () => {
   const requests = api()
   open()

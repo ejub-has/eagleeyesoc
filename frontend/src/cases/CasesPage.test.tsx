@@ -41,7 +41,7 @@ test('filters by state', async () => {
   const requests = api()
   renderInTenant(<CasesPage />, TENANT)
   await screen.findByRole('link', { name: 'Suspicious email' })
-  fireEvent.change(screen.getByLabelText('State'), { target: { value: 'triage' } })
+  fireEvent.change(screen.getByLabelText('Show'), { target: { value: 'triage' } })
   expect(await screen.findByText('No cases yet.')).toBeInTheDocument()
   expect(requests.at(-1)!.url).toContain('state=triage')
 })

@@ -99,6 +99,16 @@ test('tenant admins reach settings', async () => {
   expect(await screen.findByRole('heading', { name: 'Cases' })).toBeInTheDocument()
 })
 
+test('quick search opens the search page', async () => {
+  signedIn()
+  renderApp()
+  const box = await screen.findByRole<HTMLInputElement>('searchbox', { name: 'Quick search' })
+  fireEvent.change(box, { target: { value: 'evil.example' } })
+  fireEvent.submit(box.form!)
+  expect(await screen.findByRole('heading', { name: 'Search' })).toBeInTheDocument()
+  expect(screen.getByLabelText('Search terms')).toHaveValue('evil.example')
+})
+
 test('explains when the user has no tenants', async () => {
   signedIn({ ...ME, tenants: [] })
   renderApp()

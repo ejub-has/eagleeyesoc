@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, type FormEvent, type ReactNode } from 'react'
 import {
   Navigate,
-  NavLink,
   Outlet,
   Route,
   Routes,
@@ -17,6 +16,9 @@ import { DashboardPage } from './DashboardPage'
 import { SearchPage } from './SearchPage'
 import { TriagePage } from './TriagePage'
 import { Settings } from './settings/Settings'
+import { Logo } from './shell/icons'
+import { NavRail } from './shell/NavRail'
+import { ThemeSwitch } from './shell/ThemeSwitch'
 
 const TENANT_KEY = 'casemgr.tenant'
 
@@ -63,14 +65,34 @@ export default function App() {
   )
 }
 
-function Shell({ actions, children }: { actions?: ReactNode; children?: ReactNode }) {
+function Shell({
+  actions,
+  rail,
+  search,
+  children,
+}: {
+  actions?: ReactNode
+  rail?: ReactNode
+  search?: ReactNode
+  children?: ReactNode
+}) {
   return (
     <div className="shell">
       <header className="shell-header">
-        <span className="brand">Eagle Eye</span>
-        <div className="shell-actions">{actions}</div>
+        <span className="brand">
+          <Logo />
+          Eagle Eye
+        </span>
+        {search}
+        <div className="shell-actions">
+          <ThemeSwitch />
+          {actions}
+        </div>
       </header>
-      <main className="shell-main">{children}</main>
+      <div className="shell-body">
+        {rail}
+        <main className="shell-main">{children}</main>
+      </div>
     </div>
   )
 }
@@ -101,8 +123,8 @@ function UserActions({ me }: { me: Me }) {
   }
   return (
     <>
-      <span>{me.display_name}</span>
-      <button type="button" onClick={signOut}>
+      <span className="user-name">{me.display_name}</span>
+      <button type="button" className="ghost" onClick={signOut}>
         Sign out
       </button>
     </>
@@ -126,34 +148,46 @@ function TenantLayout({ me }: { me: Me }) {
   if (!tenant) return <Navigate to="/" replace />
   const isAdmin = ['config:manage', 'tokens:manage'].some((p) => tenant.permissions.includes(p))
 
-  const actions = (
+  const tenantSlug = tenant.slug
+  function quickSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const q = String(new FormData(event.currentTarget).get('q')).trim()
+    if (q) navigate(`/t/${tenantSlug}/search?q=${encodeURIComponent(q)}`)
+  }
+
+  const tenantPicker = (
+    <label className="tenant-picker">
+      Tenant{' '}
+      <select value={tenant.slug} onChange={(e) => navigate(`/t/${e.target.value}`)}>
+        {me.tenants.map((t) => (
+          <option key={t.slug} value={t.slug}>
+            {t.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+  const search = (
     <>
-      <label>
-        Tenant{' '}
-        <select value={tenant.slug} onChange={(e) => navigate(`/t/${e.target.value}`)}>
-          {me.tenants.map((t) => (
-            <option key={t.slug} value={t.slug}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <UserActions me={me} />
+      {tenantPicker}
+      <form className="quick-search" role="search" onSubmit={quickSearch}>
+        <input
+          name="q"
+          type="search"
+          aria-label="Quick search"
+          placeholder="Search cases, observables, journal"
+        />
+      </form>
     </>
   )
 
   return (
-    <Shell actions={actions}>
-      <h1>{tenant.name}</h1>
-      <nav className="tabs">
-        <NavLink to={`/t/${tenant.slug}`} end>
-          Cases
-        </NavLink>
-        <NavLink to={`/t/${tenant.slug}/dashboard`}>Dashboard</NavLink>
-        <NavLink to={`/t/${tenant.slug}/triage`}>Triage</NavLink>
-        <NavLink to={`/t/${tenant.slug}/search`}>Search</NavLink>
-        {isAdmin && <NavLink to={`/t/${tenant.slug}/settings`}>Settings</NavLink>}
-      </nav>
+    <Shell
+      actions={<UserActions me={me} />}
+      rail={<NavRail slug={tenant.slug} isAdmin={isAdmin} />}
+      search={search}
+    >
+      <h1 className="tenant-name">{tenant.name}</h1>
       <Outlet key={tenant.slug} context={tenant} />
     </Shell>
   )

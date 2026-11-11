@@ -75,7 +75,7 @@ export async function signIn(page: Page, user: TestUser) {
   const key = await page.locator('#kc-totp-secret-key').textContent()
   const totp = new TOTP({
     secret: Secret.fromBase32(key!.replace(/\s/g, '')),
-    algorithm: 'SHA256',
+    algorithm: 'SHA1',
     digits: 6,
     period: 30,
   })

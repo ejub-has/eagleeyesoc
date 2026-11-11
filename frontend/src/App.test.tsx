@@ -102,9 +102,9 @@ test('tenant admins reach settings', async () => {
 test('quick search opens the search page', async () => {
   signedIn()
   renderApp()
-  const box = await screen.findByRole('searchbox', { name: 'Quick search' })
+  const box = await screen.findByRole<HTMLInputElement>('searchbox', { name: 'Quick search' })
   fireEvent.change(box, { target: { value: 'evil.example' } })
-  fireEvent.submit(box)
+  fireEvent.submit(box.form!)
   expect(await screen.findByRole('heading', { name: 'Search' })).toBeInTheDocument()
   expect(screen.getByLabelText('Search terms')).toHaveValue('evil.example')
 })

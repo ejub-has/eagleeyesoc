@@ -2,9 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 import { api } from '../api/client'
 import { useTenant } from '../tenant'
+import { useCaseState } from './caseNav'
 
 export function ObservablePage() {
   const { slug } = useTenant()
+  const caseState = useCaseState()
   const observableId = useParams().observableId ?? ''
   const observable = useQuery({
     queryKey: ['observable', slug, observableId],
@@ -46,7 +48,7 @@ export function ObservablePage() {
             <tr key={c.number}>
               <td>{c.number}</td>
               <td>
-                <Link to={`/t/${slug}/cases/${c.number}`}>{c.title}</Link>
+                <Link to={`/t/${slug}/cases/${c.number}`} state={caseState}>{c.title}</Link>
               </td>
               <td>{c.state}</td>
               <td>{c.severity}</td>

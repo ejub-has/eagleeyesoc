@@ -11,6 +11,8 @@ const PATHS = {
   system: 'M3 4h18v12H3zM8 20h8M12 16v4',
   expand: 'M9 6l6 6-6 6',
   collapse: 'M15 6l-6 6 6 6',
+  back: 'M19 12H5M11 18l-6-6 6-6',
+  close: 'M18 6L6 18M6 6l12 12',
 } as const
 
 export type IconName = keyof typeof PATHS

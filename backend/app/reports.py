@@ -136,6 +136,7 @@ def _overview(ctx: Context) -> list[Block]:
                 ("Regulated data", ", ".join(r.upper() for r in c.regulated_data)),
                 ("Data regions", ", ".join(c.data_regions)),
                 ("Business units", ", ".join(c.business_units)),
+                ("Tags", ", ".join(c.tags)),
                 ("Report generated", when(ctx.generated_at)),
             ]
         )

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import {
   api,
   describeError,
@@ -15,6 +16,7 @@ import {
   type Tlp,
 } from '../api/client'
 import { splitList } from '../settings/editing'
+import { TagInput } from './TagInput'
 
 const TLPS: Tlp[] = ['clear', 'green', 'amber', 'amber+strict', 'red']
 const PAPS: Pap[] = ['clear', 'green', 'amber', 'red']
@@ -58,6 +60,7 @@ interface Draft {
   regulated: Regulated[]
   regions: string
   units: string
+  tags: string[]
   techniques: string
   tactics: Tactic[]
   detected: string
@@ -89,6 +92,7 @@ function toDraft(c: Case): Draft {
     regulated: c.regulated_data,
     regions: c.data_regions.join(', '),
     units: c.business_units.join(', '),
+    tags: c.tags,
     techniques: c.attack_techniques.join(', '),
     tactics: c.attack_tactics,
     detected: toLocalInput(c.detected_at),
@@ -114,6 +118,7 @@ function toUpdate(d: Draft, config: TenantConfig): CaseUpdate {
     regulated_data: d.regulated,
     data_regions: splitList(d.regions),
     business_units: splitList(d.units),
+    tags: d.tags,
     attack_techniques: splitList(d.techniques),
     attack_tactics: TACTICS.map(([id]) => id).filter((id) => d.tactics.includes(id)),
     detected_at: d.detected ? new Date(d.detected).toISOString() : null,
@@ -137,6 +142,7 @@ export function CaseForm({
   members,
   canWrite,
   canRestrict,
+  actionsSlot,
 }: {
   slug: string
   current: Case
@@ -144,7 +150,10 @@ export function CaseForm({
   members: Member[]
   canWrite: boolean
   canRestrict: boolean
+  /** Where to show the Save button, so it stays in view; inline when absent. */
+  actionsSlot?: HTMLElement | null
 }) {
+  const formId = useId()
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState(() => toDraft(current))
   const set = (change: Partial<Draft>) => setDraft({ ...draft, ...change })
@@ -166,9 +175,12 @@ export function CaseForm({
     },
   })
 
+  const pending = changes(toUpdate(toDraft(current), config), toUpdate(draft, config))
+  const dirty = Object.keys(pending).length > 0
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    save.mutate(changes(toUpdate(toDraft(current), config), toUpdate(draft, config)))
+    save.mutate(pending)
   }
 
   function customInput(field: CustomField) {
@@ -210,6 +222,24 @@ export function CaseForm({
     }
   }
 
+  const saveBar = (
+    <div className="save-bar">
+      {save.error && (
+        <span role="alert" className="save-error">
+          {save.error.message}
+        </span>
+      )}
+      {dirty ? (
+        <span className="muted">Unsaved changes</span>
+      ) : (
+        save.isSuccess && <span role="status">Saved</span>
+      )}
+      <button type="submit" form={formId} disabled={save.isPending}>
+        Save case
+      </button>
+    </div>
+  )
+
   const option = (value: string, label = value) => (
     <option key={value} value={value}>
       {label}
@@ -217,7 +247,7 @@ export function CaseForm({
   )
 
   return (
-    <form onSubmit={onSubmit}>
+    <form id={formId} className="case-form" onSubmit={onSubmit}>
       <fieldset disabled={!canWrite} className="case-grid">
         <label>
           Title <input value={draft.title} onChange={(e) => set({ title: e.target.value })} />
@@ -249,7 +279,7 @@ export function CaseForm({
             {config.severity.urgencies.map((u) => option(u))}
           </select>
         </label>
-        <label>
+        <label className="check">
           <input
             type="checkbox"
             checked={draft.overridden}
@@ -312,7 +342,7 @@ export function CaseForm({
           />
         </label>
         {canRestrict && (
-          <label>
+          <label className="check">
             <input
               type="checkbox"
               checked={draft.restricted}
@@ -321,10 +351,10 @@ export function CaseForm({
             Restricted
           </label>
         )}
-        <div>
-          Regulated data{' '}
+        <fieldset className="chips">
+          <legend>Regulated data</legend>
           {REGULATED.map((r) => (
-            <label key={r}>
+            <label key={r} className="chip">
               <input
                 type="checkbox"
                 checked={draft.regulated.includes(r)}
@@ -339,6 +369,10 @@ export function CaseForm({
               {r.toUpperCase()}
             </label>
           ))}
+        </fieldset>
+        <div className="wide field">
+          <span className="field-label">Tags</span>
+          <TagInput value={draft.tags} onChange={(tags) => set({ tags })} disabled={!canWrite} />
         </div>
         <label>
           Data regions{' '}
@@ -352,10 +386,10 @@ export function CaseForm({
           Business units{' '}
           <input value={draft.units} onChange={(e) => set({ units: e.target.value })} />
         </label>
-        <fieldset className="wide">
+        <fieldset className="wide chips">
           <legend>ATT&CK tactics</legend>
           {TACTICS.map(([id, name]) => (
-            <label key={id}>
+            <label key={id} className="chip">
               <input
                 type="checkbox"
                 checked={draft.tactics.includes(id)}
@@ -389,15 +423,7 @@ export function CaseForm({
           />
         </label>
       </fieldset>
-      {canWrite && (
-        <div className="save-bar">
-          <button type="submit" disabled={save.isPending}>
-            Save case
-          </button>
-          {save.isSuccess && <span role="status">Saved</span>}
-          {save.error && <p role="alert">{save.error.message}</p>}
-        </div>
-      )}
+      {canWrite && (actionsSlot ? createPortal(saveBar, actionsSlot) : saveBar)}
     </form>
   )
 }

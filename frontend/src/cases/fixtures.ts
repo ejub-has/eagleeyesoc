@@ -88,6 +88,7 @@ export const CASE: Case = {
   triaged_at: null,
   contained_at: null,
   major_incident_at: null,
+  tags: [],
   major_incident_reason: null,
   sla_status: 'pending',
   sla: [

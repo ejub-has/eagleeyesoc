@@ -1,9 +1,10 @@
-import { NavLink } from 'react-router'
+import { NavLink, useMatch } from 'react-router'
 import { useNavExpanded } from '../theme'
 import { Icon, type IconName } from './icons'
 
 export function NavRail({ slug, isAdmin }: { slug: string; isAdmin: boolean }) {
   const [expanded, toggle] = useNavExpanded()
+  const onCase = useMatch('/t/:slug/cases/:number')
   const items: [string, string, IconName][] = [
     ['Cases', '', 'cases'],
     ['Dashboard', 'dashboard', 'dashboard'],
@@ -16,7 +17,12 @@ export function NavRail({ slug, isAdmin }: { slug: string; isAdmin: boolean }) {
   return (
     <nav className="rail" aria-label="Main" data-expanded={expanded}>
       {items.map(([label, path, icon]) => (
-        <NavLink key={label} to={`/t/${slug}${path && `/${path}`}`} end={!path}>
+        <NavLink
+          key={label}
+          to={`/t/${slug}${path && `/${path}`}`}
+          end={!path}
+          className={({ isActive }) => (isActive || (!path && onCase) ? 'active' : undefined)}
+        >
           <Icon name={icon} size={22} />
           <span>{label}</span>
         </NavLink>

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { api, type Metric } from './api/client'
 import { useMembers, useTenantConfig } from './api/queries'
+import { useCaseState } from './cases/caseNav'
 import { useTenant } from './tenant'
 
 const AGES = [
@@ -75,6 +76,7 @@ function load<T>(what: string, call: () => Promise<{ data?: T; response: Respons
 export function DashboardPage() {
   const { slug } = useTenant()
   const [days, setDays] = useState(90)
+  const caseState = useCaseState()
   const config = useTenantConfig(slug)
   const members = useMembers(slug)
   const path = { params: { path: { slug } } }
@@ -151,7 +153,7 @@ export function DashboardPage() {
             {clocks.data.map((clock) => (
               <tr key={clock.id}>
                 <td>
-                  <Link to={`/t/${slug}/cases/${clock.case_number}`}>#{clock.case_number}</Link>
+                  <Link to={`/t/${slug}/cases/${clock.case_number}`} state={caseState}>#{clock.case_number}</Link>
                 </td>
                 <td>{clock.name}</td>
                 <td>{new Date(clock.due_at).toLocaleString()}</td>

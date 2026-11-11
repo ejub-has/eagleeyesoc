@@ -102,6 +102,7 @@ class CaseSummary(BaseModel):
     updated_at: datetime
     sla_status: sla.Status | None = None
     sla_due_at: datetime | None = None
+    tags: list[str]
 
 
 class CaseFields(CaseSummary):
@@ -215,6 +216,7 @@ class CaseUpdate(BaseModel):
     regulated_data: list[Regulated] | None = None
     data_regions: list[Region] | None = None
     business_units: list[Label] | None = None
+    tags: list[Label] | None = None
     attack_techniques: list[Technique] | None = None
     attack_tactics: list[Tactic] | None = None
     custom: dict[str, Any] | None = None
@@ -413,6 +415,7 @@ async def create_case(
         regulated_data=[],
         data_regions=[],
         business_units=[],
+        tags=[],
         attack_techniques=[],
         attack_tactics=[],
         custom={},
@@ -713,7 +716,7 @@ async def merge(
 COPIED_ON_SPLIT = (
     "category", "impact", "urgency", "severity", "priority", "override_justification", "team",
     "owner_id", "tlp", "pap", "restricted", "regulated_data", "data_regions", "business_units",
-    "attack_techniques", "attack_tactics", "custom", "detected_at",
+    "tags", "attack_techniques", "attack_tactics", "custom", "detected_at",
 )  # fmt: skip
 
 

@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { api, describeError, type QueuedAlert } from './api/client'
+import { useCaseState, useOpenCase } from './cases/caseNav'
 import { useTenant } from './tenant'
 
 type Decision = { alert: string; kind: 'promote'; into?: number } | { alert: string; kind: 'dismiss' }
@@ -10,7 +11,7 @@ export function TriagePage() {
   const { slug, permissions } = useTenant()
   const canDecide = permissions.includes('cases:write')
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
+  const openCase = useOpenCase(slug)
 
   const alerts = useQuery({
     queryKey: ['triage', slug],
@@ -43,7 +44,7 @@ export function TriagePage() {
     },
     onSuccess: async (promoted) => {
       await queryClient.invalidateQueries({ queryKey: ['triage', slug] })
-      if (promoted?.new_case) navigate(`/t/${slug}/cases/${promoted.case_number}`)
+      if (promoted?.new_case) openCase(promoted.case_number)
     },
   })
 
@@ -86,6 +87,7 @@ function AlertItem({
   onDecide: (decision: Decision, reason: string) => void
 }) {
   const [reason, setReason] = useState('')
+  const caseState = useCaseState()
   const ready = reason.trim() !== '' && !busy
   const label = `Reason for ${alert.title}`
 
@@ -103,7 +105,7 @@ function AlertItem({
           <ul>
             {alert.matches.map((m) => (
               <li key={m.case_number}>
-                <Link to={`/t/${slug}/cases/${m.case_number}`}>
+                <Link to={`/t/${slug}/cases/${m.case_number}`} state={caseState}>
                   #{m.case_number} {m.case_title}
                 </Link>{' '}
                 ({m.observables.join(', ')})

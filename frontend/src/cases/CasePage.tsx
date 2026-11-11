@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { api, describeError, type AssetKind, type Case, type Me } from '../api/client'
 import { useMembers, useTenantConfig } from '../api/queries'
 import { dueLabel } from '../sla'
 import { useTenant } from '../tenant'
 import { CaseForm } from './CaseForm'
+import { useCaseState, useOpenCase } from './caseNav'
 import { CommentsPanel } from './CommentsPanel'
 import { EvidencePanel } from './EvidencePanel'
 import { PRIVILEGE_NOTICE } from './journal'
@@ -30,10 +31,12 @@ function toggle(list: string[], id: string, on: boolean): string[] {
 export function CasePage() {
   const { slug, permissions } = useTenant()
   const number = Number(useParams().number)
-  const navigate = useNavigate()
+  const openCase = useOpenCase(slug)
+  const caseState = useCaseState()
   const queryClient = useQueryClient()
   const config = useTenantConfig(slug)
   const members = useMembers(slug)
+  const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null)
   const [selectedAlerts, setSelectedAlerts] = useState<string[]>([])
   const [selectedAssets, setSelectedAssets] = useState<string[]>([])
   const [selectedObservables, setSelectedObservables] = useState<string[]>([])
@@ -63,7 +66,7 @@ export function CasePage() {
       setSelectedObservables([])
       queryClient.setQueryData(['case', slug, shown.number], shown)
       void queryClient.invalidateQueries({ queryKey: ['cases', slug] })
-      if (shown.number !== number) navigate(`/t/${slug}/cases/${shown.number}`)
+      if (shown.number !== number) openCase(shown.number)
     },
   })
 
@@ -164,10 +167,23 @@ export function CasePage() {
           )}
           {current.major_incident_at && <span className="tag tag-major">Major incident</span>}
           {current.restricted && <span className="tag">Restricted</span>}
+          {current.regulated_data.map((r) => (
+            <span key={r} className="tag tag-regulated">
+              {r.toUpperCase()}
+            </span>
+          ))}
+          {current.tags.map((t) => (
+            <span key={t} className="tag">
+              {t}
+            </span>
+          ))}
         </div>
-        <h2>
-          #{current.number} {current.title}
-        </h2>
+        <div className="case-title-row">
+          <h2>
+            #{current.number} {current.title}
+          </h2>
+          <div className="case-head-actions" ref={setActionsSlot} />
+        </div>
         <p className="case-meta">
           {current.priority} {current.severity} | {state?.name ?? current.state} | source{' '}
           {current.source} | opened {new Date(current.created_at).toLocaleString()}
@@ -176,7 +192,8 @@ export function CasePage() {
       </header>
       {current.merged_into && (
         <p>
-          Merged into <Link to={`/t/${slug}/cases/${current.merged_into}`}>#{current.merged_into}</Link>
+          Merged into{' '}
+          <Link to={`/t/${slug}/cases/${current.merged_into}`} state={caseState}>#{current.merged_into}</Link>
         </p>
       )}
       {current.privileged && <p className="banner">{PRIVILEGE_NOTICE}</p>}
@@ -236,6 +253,7 @@ export function CasePage() {
         members={members.data}
         canWrite={canWrite}
         canRestrict={permissions.includes('restricted_case')}
+        actionsSlot={actionsSlot}
       />
 
       <TasksPanel

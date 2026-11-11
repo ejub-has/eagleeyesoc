@@ -2,12 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { api, describeError } from './api/client'
+import { useCaseState } from './cases/caseNav'
 import { useTenant } from './tenant'
 
 export function SearchPage() {
   const { slug } = useTenant()
   const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()
+  const caseState = useCaseState()
   const q = params.get('q') ?? ''
   const path = { params: { path: { slug } } }
 
@@ -97,7 +99,7 @@ export function SearchPage() {
           <ol className="results">
             {results.data.map((hit, i) => (
               <li key={i}>
-                <Link to={`/t/${slug}/cases/${hit.case_number}`}>
+                <Link to={`/t/${slug}/cases/${hit.case_number}`} state={caseState}>
                   #{hit.case_number} {hit.case_title}
                 </Link>{' '}
                 <span className="badge">{hit.kind}</span>

@@ -5,11 +5,13 @@ import {
   Outlet,
   Route,
   Routes,
+  useLocation,
   useNavigate,
   useParams,
 } from 'react-router'
 import { api, type Me } from './api/client'
-import { CasePage } from './cases/CasePage'
+import { CaseDrawer } from './cases/CaseDrawer'
+import type { CaseState } from './cases/caseNav'
 import { CasesPage } from './cases/CasesPage'
 import { ObservablePage } from './cases/ObservablePage'
 import { DashboardPage } from './DashboardPage'
@@ -31,6 +33,9 @@ async function fetchMe(): Promise<Me | null> {
 
 export default function App() {
   const me = useQuery({ queryKey: ['me'], queryFn: fetchMe })
+  const location = useLocation()
+  // A case opened from a page shows over it; the page stays rendered underneath.
+  const background = (location.state as CaseState | null)?.background
 
   if (me.isPending) return <Shell />
   if (me.isError) {
@@ -50,18 +55,29 @@ export default function App() {
     )
   }
   return (
-    <Routes>
-      <Route path="/t/:slug" element={<TenantLayout me={me.data} />}>
-        <Route index element={<CasesPage />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="search" element={<SearchPage />} />
-        <Route path="triage" element={<TriagePage />} />
-        <Route path="cases/:number" element={<CasePage />} />
-        <Route path="observables/:observableId" element={<ObservablePage />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-      <Route path="*" element={<Home me={me.data} />} />
-    </Routes>
+    <>
+      <Routes location={background ?? location}>
+        <Route path="/t/:slug" element={<TenantLayout me={me.data} overlay={!!background} />}>
+          <Route element={<CasesPage />}>
+            <Route index element={null} />
+            <Route path="cases/:number" element={<CaseDrawer />} />
+          </Route>
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="search" element={<SearchPage />} />
+          <Route path="triage" element={<TriagePage />} />
+          <Route path="observables/:observableId" element={<ObservablePage />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+        <Route path="*" element={<Home me={me.data} />} />
+      </Routes>
+      {background && (
+        <Routes>
+          <Route path="/t/:slug" element={<TenantOverlay me={me.data} />}>
+            <Route path="cases/:number" element={<CaseDrawer />} />
+          </Route>
+        </Routes>
+      )}
+    </>
   )
 }
 
@@ -69,11 +85,13 @@ function Shell({
   actions,
   rail,
   search,
+  inert,
   children,
 }: {
   actions?: ReactNode
   rail?: ReactNode
   search?: ReactNode
+  inert?: boolean
   children?: ReactNode
 }) {
   return (
@@ -91,7 +109,9 @@ function Shell({
       </header>
       <div className="shell-body">
         {rail}
-        <main className="shell-main">{children}</main>
+        <main className="shell-main" inert={inert}>
+          {children}
+        </main>
       </div>
     </div>
   )
@@ -131,7 +151,14 @@ function UserActions({ me }: { me: Me }) {
   )
 }
 
-function TenantLayout({ me }: { me: Me }) {
+/** Provides the tenant to a case opened over another page. */
+function TenantOverlay({ me }: { me: Me }) {
+  const { slug } = useParams()
+  const tenant = me.tenants.find((t) => t.slug === slug)
+  return tenant ? <Outlet context={tenant} /> : null
+}
+
+function TenantLayout({ me, overlay }: { me: Me; overlay: boolean }) {
   const { slug } = useParams()
   const navigate = useNavigate()
   const tenant = me.tenants.find((t) => t.slug === slug)
@@ -186,6 +213,7 @@ function TenantLayout({ me }: { me: Me }) {
       actions={<UserActions me={me} />}
       rail={<NavRail slug={tenant.slug} isAdmin={isAdmin} />}
       search={search}
+      inert={overlay}
     >
       <h1 className="tenant-name">{tenant.name}</h1>
       <Outlet key={tenant.slug} context={tenant} />

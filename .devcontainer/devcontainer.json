@@ -6,7 +6,7 @@
   "features": {
     // Its own Docker engine inside the codespace (no Docker Desktop or WSL on your PC).
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers/features/node:1": { "version": "26" },
+    "ghcr.io/devcontainers/features/node:2": { "version": "26" },
     "ghcr.io/devcontainers/features/terraform:1": {}
   },
   // uv installs the Python version in backend/.python-version on first use.

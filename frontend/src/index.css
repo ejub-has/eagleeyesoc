@@ -183,6 +183,17 @@ td {
   text-align: left;
 }
 
+td a {
+  color: var(--fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+td a:hover {
+  color: var(--link);
+  text-decoration: underline;
+}
+
 tr:last-child td {
   border-bottom: none;
 }

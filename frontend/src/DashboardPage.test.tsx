@@ -61,8 +61,9 @@ test('shows open work, SLA compliance, and workload', async () => {
   await vi.waitFor(() => expect(rows('Open cases by state')).toEqual(['New2', 'Triage1']))
   expect(rows('Open cases by age')).toEqual(['Under 1 day2', 'Over 30 days1'])
   expect(rows('Analyst workload')).toEqual(['J Doe2', 'Unassigned1'])
-  expect(screen.getByText(/SLA compliance, cases closed in the last 30 days: 75%/)).toBeInTheDocument()
-  expect(screen.getByText(/Open post-incident review actions: 4/)).toBeInTheDocument()
+  const stat = (label: string) => screen.getByText(label).parentElement!.textContent
+  expect(stat('SLA compliance, closed in 30 days')).toBe('75%SLA compliance, closed in 30 days')
+  expect(stat('Open post-incident review actions')).toBe('4Open post-incident review actions')
 })
 
 test('lists notification deadlines across cases', async () => {
@@ -72,7 +73,7 @@ test('lists notification deadlines across cases', async () => {
   expect(link).toHaveAttribute('href', '/t/dr/cases/7')
   const cells = within(link.closest('tr')!).getAllByRole('cell')
   expect(cells[1]).toHaveTextContent('GDPR Art. 33')
-  expect(cells[3]).toHaveClass('sla-warning')
+  expect(within(cells[3]).getByText('warning')).toHaveClass('pill', 'sla-warning')
 })
 
 test('shows metrics and changes the window', async () => {

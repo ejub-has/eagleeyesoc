@@ -101,6 +101,7 @@ class CaseSummary(BaseModel):
     created_at: datetime
     updated_at: datetime
     sla_status: sla.Status | None = None
+    sla_due_at: datetime | None = None
 
 
 class CaseFields(CaseSummary):
@@ -316,8 +317,10 @@ def clocks(case: Case, config: TenantConfig, now: datetime) -> list[sla.SlaClock
 
 
 def summary(case: Case, config: TenantConfig, now: datetime) -> CaseSummary:
-    status = sla.worst(clocks(case, config, now))
-    return CaseSummary.model_validate(case).model_copy(update={"sla_status": status})
+    case_clocks = clocks(case, config, now)
+    return CaseSummary.model_validate(case).model_copy(
+        update={"sla_status": sla.worst(case_clocks), "sla_due_at": sla.next_due(case_clocks)}
+    )
 
 
 async def case_out(
@@ -338,8 +341,9 @@ async def case_out(
     now = datetime.now(UTC)
     case_clocks = clocks(case, config, now)
     return CaseOut(
-        **CaseFields.model_validate(case).model_dump(exclude={"sla_status"}),
+        **CaseFields.model_validate(case).model_dump(exclude={"sla_status", "sla_due_at"}),
         sla_status=sla.worst(case_clocks),
+        sla_due_at=sla.next_due(case_clocks),
         merged_into=merged_into,
         alerts=[AlertOut.model_validate(a) for a in alerts],
         assets=[AssetOut.model_validate(a) for a in assets],

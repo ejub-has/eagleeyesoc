@@ -27,23 +27,40 @@ function Counts({ caption, counts, label = (key) => key }: {
   label?: (key: string) => string
 }) {
   const entries = Object.entries(counts)
+  const most = Math.max(1, ...entries.map(([, count]) => count))
   return (
-    <table>
-      <caption>{caption}</caption>
-      <tbody>
-        {entries.length === 0 && (
-          <tr>
-            <td>None</td>
-          </tr>
-        )}
-        {entries.map(([key, count]) => (
-          <tr key={key}>
-            <th scope="row">{label(key)}</th>
-            <td>{count}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="card">
+      <table>
+        <caption>{caption}</caption>
+        <tbody>
+          {entries.length === 0 && (
+            <tr>
+              <td className="muted">None</td>
+            </tr>
+          )}
+          {entries.map(([key, count]) => (
+            <tr key={key}>
+              <th scope="row">{label(key)}</th>
+              <td className="bar-cell">
+                <span className="bar">
+                  <span style={{ width: `${(count / most) * 100}%` }} />
+                </span>
+              </td>
+              <td className="count">{count}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Stat({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
+  return (
+    <div className={`stat${tone ? ` stat-${tone}` : ''}`}>
+      <span className="stat-value">{value}</span>
+      <span className="stat-label">{label}</span>
+    </div>
   )
 }
 
@@ -82,44 +99,46 @@ export function DashboardPage() {
   const error = board.error ?? clocks.error ?? metrics.error
   const aging = board.data?.aging ?? {}
 
+  const open = Object.values(board.data?.open_by_state ?? {}).reduce((a, b) => a + b, 0)
+  const breached = board.data?.sla_status.breached ?? 0
+
   return (
     <section className="dashboard">
-      <h2>Dashboard</h2>
+      <div className="page-head">
+        <h2>Dashboard</h2>
+      </div>
       {error && <p role="alert">{error.message}</p>}
       {board.data && (
-        <div className="panels">
-          <Counts caption="Open cases by severity" counts={board.data.open_by_severity} />
-          <Counts caption="Open cases by state" counts={board.data.open_by_state} label={stateName} />
-          <Counts caption="Open cases by SLA status" counts={board.data.sla_status} />
-          <Counts
-            caption="Open cases by age"
-            counts={Object.fromEntries(
-              AGES.filter(([key]) => aging[key]).map(([key, label]) => [label, aging[key]]),
-            )}
-          />
-          <table>
-            <caption>Analyst workload</caption>
-            <tbody>
-              {board.data.workload.map((w) => (
-                <tr key={w.owner_id ?? 'none'}>
-                  <th scope="row">{ownerName(w.owner_id)}</th>
-                  <td>{w.open}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p>
-            SLA compliance, cases closed in the last 30 days: {percent(board.data.sla_compliance)}
-            <br />
-            Open post-incident review actions: {board.data.open_pir_actions}
-          </p>
-        </div>
+        <>
+          <div className="stats">
+            <Stat label="Open cases" value={open} />
+            <Stat label="SLA breached" value={breached} tone={breached ? 'bad' : undefined} />
+            <Stat label="SLA compliance, closed in 30 days" value={percent(board.data.sla_compliance)} />
+            <Stat label="Open post-incident review actions" value={board.data.open_pir_actions} />
+          </div>
+          <div className="cards">
+            <Counts caption="Open cases by severity" counts={board.data.open_by_severity} />
+            <Counts caption="Open cases by state" counts={board.data.open_by_state} label={stateName} />
+            <Counts caption="Open cases by SLA status" counts={board.data.sla_status} />
+            <Counts
+              caption="Open cases by age"
+              counts={Object.fromEntries(
+                AGES.filter(([key]) => aging[key]).map(([key, label]) => [label, aging[key]]),
+              )}
+            />
+            <Counts
+              caption="Analyst workload"
+              counts={Object.fromEntries(board.data.workload.map((w) => [w.owner_id ?? '', w.open]))}
+              label={(id) => ownerName(id || null)}
+            />
+          </div>
+        </>
       )}
 
       <h3>Notification deadlines</h3>
-      {clocks.data?.length === 0 && <p>No notification clock is running.</p>}
+      {clocks.data?.length === 0 && <p className="empty">No notification clock is running.</p>}
       {!!clocks.data?.length && (
-        <table>
+        <table className="data-table">
           <thead>
             <tr>
               <th>Case</th>
@@ -136,57 +155,63 @@ export function DashboardPage() {
                 </td>
                 <td>{clock.name}</td>
                 <td>{new Date(clock.due_at).toLocaleString()}</td>
-                <td className={`sla-${clock.status}`}>{clock.status}</td>
+                <td>
+                  <span className={`pill sla-${clock.status}`}>{clock.status}</span>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
 
-      <h3>Metrics</h3>
-      <label>
-        Cases opened in the last{' '}
-        <select value={days} onChange={(e) => setDays(Number(e.target.value))}>
-          {WINDOWS.map((d) => (
-            <option key={d} value={d}>
-              {d} days
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="page-head section-head">
+        <h3>Metrics</h3>
+        <label className="filter">
+          Cases opened in the last{' '}
+          <select value={days} onChange={(e) => setDays(Number(e.target.value))}>
+            {WINDOWS.map((d) => (
+              <option key={d} value={d}>
+                {d} days
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       {metrics.data && (
-        <div className="panels">
-          <table>
-            <caption>Response times ({metrics.data.cases} cases)</caption>
-            <tbody>
-              {(
-                [
-                  ['Mean time to detect', metrics.data.mttd],
-                  ['Mean time to acknowledge', metrics.data.mtta],
-                  ['Mean time to contain', metrics.data.mttc],
-                  ['Mean time to resolve', metrics.data.mttr],
-                  ['Dwell time', metrics.data.dwell_time],
-                ] as const
-              ).map(([label, metric]) => (
-                <tr key={label}>
-                  <th scope="row">{label}</th>
-                  <td>{hours(metric)}</td>
+        <div className="cards">
+          <div className="card">
+            <table>
+              <caption>Response times ({metrics.data.cases} cases)</caption>
+              <tbody>
+                {(
+                  [
+                    ['Mean time to detect', metrics.data.mttd],
+                    ['Mean time to acknowledge', metrics.data.mtta],
+                    ['Mean time to contain', metrics.data.mttc],
+                    ['Mean time to resolve', metrics.data.mttr],
+                    ['Dwell time', metrics.data.dwell_time],
+                  ] as const
+                ).map(([label, metric]) => (
+                  <tr key={label}>
+                    <th scope="row">{label}</th>
+                    <td>{hours(metric)}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <th scope="row">False-positive rate</th>
+                  <td>
+                    {percent(metrics.data.false_positive_rate)} of {metrics.data.closed} closed
+                  </td>
                 </tr>
-              ))}
-              <tr>
-                <th scope="row">False-positive rate</th>
-                <td>
-                  {percent(metrics.data.false_positive_rate)} of {metrics.data.closed} closed
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">Recurrence</th>
-                <td>
-                  {metrics.data.recurring} cases ({percent(metrics.data.recurrence_rate)})
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <tr>
+                  <th scope="row">Recurrence</th>
+                  <td>
+                    {metrics.data.recurring} cases ({percent(metrics.data.recurrence_rate)})
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <Counts caption="Cases by category" counts={metrics.data.by_category} />
           <Counts caption="Cases by ATT&CK technique" counts={metrics.data.by_technique} />
         </div>

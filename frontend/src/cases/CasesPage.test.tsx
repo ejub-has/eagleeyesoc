@@ -30,6 +30,13 @@ test('lists cases with state, severity, and owner names', async () => {
   expect(screen.getByRole('link', { name: 'Suspicious email' })).toHaveAttribute('href', '/t/dr/cases/7')
 })
 
+test('shows time left on the next SLA deadline', async () => {
+  const due = new Date(Date.now() + 80 * 60_000 + 30_000).toISOString()
+  api([{ ...CASE, sla_status: 'warning', sla_due_at: due }])
+  renderInTenant(<CasesPage />, TENANT)
+  expect(await screen.findByTitle('warning')).toHaveTextContent('1h 20m left')
+})
+
 test('filters by state', async () => {
   const requests = api()
   renderInTenant(<CasesPage />, TENANT)

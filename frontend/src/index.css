@@ -356,6 +356,7 @@ pre {
 /* Left navigation: icons with labels below; expanded shows names beside the icons. */
 
 .rail {
+  overflow-y: auto;
   position: sticky;
   top: 3.5rem;
   display: flex;
@@ -376,6 +377,7 @@ pre {
 }
 
 .rail a {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -722,6 +724,7 @@ input[type='number'] {
 
 .pill {
   display: inline-block;
+  font-variant-numeric: tabular-nums;
   padding: 0.15rem 0.65rem;
   border-radius: 999px;
   background: var(--field);
@@ -729,7 +732,10 @@ input[type='number'] {
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
-  text-transform: capitalize;
+}
+
+.pill::first-letter {
+  text-transform: uppercase;
 }
 
 .pill.sev-critical {
@@ -766,4 +772,274 @@ input[type='number'] {
 .pill.sla-late {
   background: var(--sev-critical-bg);
   color: var(--sev-critical-fg);
+}
+
+/* Dashboard: stat tiles and cards with bars */
+
+.section-head {
+  margin-top: 2rem;
+}
+
+.section-head h3,
+.dashboard > h3 {
+  margin: 0;
+}
+
+.dashboard > h3 {
+  margin: 2rem 0 1rem;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.stat-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.stat-bad .stat-value {
+  color: var(--danger);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  align-items: start;
+  gap: 1rem;
+}
+
+.card {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.card table {
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.card caption {
+  padding: 0 0 0.5rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.card th,
+.card td {
+  padding: 0.4rem 0;
+  border-bottom: none;
+}
+
+.card th {
+  color: var(--fg);
+  font-size: inherit;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.card td + td,
+.card th + td {
+  padding-left: 0.75rem;
+}
+
+.bar-cell {
+  width: 40%;
+}
+
+.bar {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--field);
+  overflow: hidden;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+td.count {
+  width: 2.5rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Triage: one card per alert */
+
+.triage {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alert-card h3 {
+  margin: 0 0 0.35rem;
+}
+
+.alert-meta {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+}
+
+.alert-meta .badge {
+  margin-right: 0.35rem;
+  color: var(--fg);
+}
+
+.alert-card .notice p {
+  margin: 0 0 0.35rem;
+}
+
+.alert-card .notice ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.alert-card details {
+  margin: 0.5rem 0;
+}
+
+.alert-card .inline-form input {
+  flex: 1;
+  min-width: 14rem;
+}
+
+summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Case detail: header, SLA strip, panels as cards */
+
+.case-head {
+  margin-bottom: 1rem;
+}
+
+.case-head h2 {
+  margin: 0.4rem 0 0.25rem;
+}
+
+.case-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.case-tags .tag {
+  margin-left: 0;
+}
+
+.case-meta {
+  margin: 0;
+  color: var(--muted);
+}
+
+.case-page > section,
+.case-page > form {
+  margin-bottom: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.case-page > section > h3 {
+  margin-top: 0;
+}
+
+.case-page > form > fieldset {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+.case-page table:not(.sla) {
+  margin-top: 0.5rem;
+  box-shadow: none;
+}
+
+table.sla {
+  width: 100%;
+  margin: 0 0 1rem;
+  table-layout: fixed;
+  overflow: visible;
+}
+
+table.sla caption {
+  padding-bottom: 0.4rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+table.sla td {
+  border-bottom: none;
+  border-left: 4px solid var(--line);
+  color: var(--fg);
+  font-weight: 400;
+}
+
+table.sla td strong {
+  text-transform: capitalize;
+}
+
+table.sla td.sla-met {
+  border-left-color: var(--ok-fg);
+}
+
+table.sla td.sla-warning {
+  border-left-color: var(--sev-medium-fg);
+  background: transparent;
+}
+
+table.sla td.sla-breached,
+table.sla td.sla-late {
+  border-left-color: var(--sev-critical-fg);
+}
+
+.case-actions {
+  margin-bottom: 1rem;
 }

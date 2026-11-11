@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { api, describeError } from '../api/client'
 import { useMembers, useTenantConfig } from '../api/queries'
+import { dueLabel } from '../sla'
 import { useTenant } from '../tenant'
 
 export function CasesPage() {
@@ -142,7 +143,13 @@ export function CasesPage() {
                 </td>
                 <td>{stateName(c.state)}</td>
                 <td className="muted">{ownerName(c.owner_id)}</td>
-                <td>{c.sla_status && <span className={`pill sla-${c.sla_status}`}>{c.sla_status}</span>}</td>
+                <td>
+                  {c.sla_status && (
+                    <span className={`pill sla-${c.sla_status}`} title={c.sla_status}>
+                      {c.sla_due_at ? dueLabel(c.sla_due_at) : c.sla_status}
+                    </span>
+                  )}
+                </td>
                 <td className="muted">{new Date(c.created_at).toLocaleString()}</td>
               </tr>
             ))}

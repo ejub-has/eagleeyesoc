@@ -1423,6 +1423,8 @@ export interface components {
             updated_at: string;
             /** Sla Status */
             sla_status?: ("met" | "late" | "pending" | "warning" | "breached") | null;
+            /** Sla Due At */
+            sla_due_at?: string | null;
             /**
              * Id
              * Format: uuid
@@ -1533,6 +1535,8 @@ export interface components {
             updated_at: string;
             /** Sla Status */
             sla_status?: ("met" | "late" | "pending" | "warning" | "breached") | null;
+            /** Sla Due At */
+            sla_due_at?: string | null;
         };
         /**
          * CaseUpdate

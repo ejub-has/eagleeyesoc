@@ -218,6 +218,7 @@ async def test_list_shows_the_worst_sla_status(
     listed = (await analyst.client.get(url(tenant))).json()
     # Phishing is rated high: acknowledge within 30 minutes, so 25 minutes in is a warning.
     assert listed[0]["sla_status"] == "warning"
+    assert listed[0]["sla_due_at"] is not None  # 5 minutes from now
 
 
 async def test_major_incident(analyst: SignedIn, tenant: str, owner: AsyncEngine) -> None:

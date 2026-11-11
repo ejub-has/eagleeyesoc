@@ -4625,6 +4625,18 @@
             ],
             "title": "Sla Status"
           },
+          "sla_due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sla Due At"
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -5037,6 +5049,18 @@
               }
             ],
             "title": "Sla Status"
+          },
+          "sla_due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sla Due At"
           }
         },
         "type": "object",

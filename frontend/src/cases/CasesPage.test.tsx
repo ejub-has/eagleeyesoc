@@ -24,8 +24,8 @@ test('lists cases with state, severity, and owner names', async () => {
   renderInTenant(<CasesPage />, TENANT)
   const rows = (await screen.findAllByRole('row')).slice(1)
   expect(rows.map((r) => within(r).getAllByRole('cell').map((c) => c.textContent))).toEqual([
-    ['7', 'Suspicious email', 'New', 'P1 high', 'pending', 'J Doe', expect.any(String)],
-    ['8', 'Ransom note (restricted)', 'New', 'P1 high', 'pending', 'Unassigned', expect.any(String)],
+    ['#7', 'Suspicious email', 'P1 high', 'New', 'J Doe', 'pending', expect.any(String)],
+    ['#8', 'Ransom noteRestricted', 'P1 high', 'New', 'Unassigned', 'pending', expect.any(String)],
   ])
   expect(screen.getByRole('link', { name: 'Suspicious email' })).toHaveAttribute('href', '/t/dr/cases/7')
 })
@@ -42,7 +42,7 @@ test('filters by state', async () => {
 test('creates a case from a template and opens it', async () => {
   const requests = api([])
   renderInTenant(<CasesPage />, TENANT)
-  fireEvent.click(await screen.findByText('New case'))
+  fireEvent.click(await screen.findByRole('button', { name: 'New case' }))
   fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'bec' } })
   fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'CFO wire request' } })
   fireEvent.click(screen.getByRole('button', { name: 'Create case' }))
@@ -56,7 +56,7 @@ test('read-only roles cannot create cases', async () => {
   api()
   renderInTenant(<CasesPage />, { ...TENANT, permissions: ['cases:read'] })
   await screen.findByRole('link', { name: 'Suspicious email' })
-  expect(screen.queryByText('New case')).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'New case' })).not.toBeInTheDocument()
 })
 
 test('reports a failed load', async () => {

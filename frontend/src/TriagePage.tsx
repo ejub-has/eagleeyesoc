@@ -49,10 +49,13 @@ export function TriagePage() {
 
   return (
     <section>
-      <h2>Triage</h2>
+      <div className="page-head">
+        <h2>Triage</h2>
+        {alerts.data && <span className="page-count">{alerts.data.length} waiting</span>}
+      </div>
       {alerts.isError && <p role="alert">{alerts.error.message}</p>}
       {decide.isError && <p role="alert">{decide.error.message}</p>}
-      {alerts.data?.length === 0 && <p>No alerts are waiting.</p>}
+      {alerts.data?.length === 0 && <p className="empty">No alerts are waiting.</p>}
       <ol className="triage">
         {alerts.data?.map((alert) => (
           <AlertItem
@@ -87,15 +90,15 @@ function AlertItem({
   const label = `Reason for ${alert.title}`
 
   return (
-    <li>
+    <li className="card alert-card">
       <h3>{alert.title}</h3>
-      <p>
+      <p className="alert-meta">
         <span className="badge">{alert.source}</span>
         {alert.external_id && ` ${alert.external_id}`} | received {new Date(alert.received_at).toLocaleString()}
         {alert.template && ` | template ${alert.template}`}
       </p>
       {alert.matches.length > 0 && (
-        <div>
+        <div className="notice">
           <p>Possible duplicates (open cases sharing observables):</p>
           <ul>
             {alert.matches.map((m) => (
@@ -136,12 +139,18 @@ function AlertItem({
           />
           <button
             type="button"
+            className="primary"
             disabled={!ready}
             onClick={() => onDecide({ alert: alert.id, kind: 'promote' }, reason)}
           >
             Open case
           </button>
-          <button type="button" disabled={!ready} onClick={() => onDecide({ alert: alert.id, kind: 'dismiss' }, reason)}>
+          <button
+            type="button"
+            className="ghost"
+            disabled={!ready}
+            onClick={() => onDecide({ alert: alert.id, kind: 'dismiss' }, reason)}
+          >
             Dismiss
           </button>
         </div>

@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { api, describeError, type AssetKind, type Case, type Me } from '../api/client'
 import { useMembers, useTenantConfig } from '../api/queries'
+import { dueLabel } from '../sla'
 import { useTenant } from '../tenant'
 import { CaseForm } from './CaseForm'
 import { CommentsPanel } from './CommentsPanel'
@@ -154,15 +155,25 @@ export function CasePage() {
   }
 
   return (
-    <article>
-      <h2>
-        #{current.number} {current.title}
-      </h2>
-      <p>
-        {current.priority} {current.severity} | {state?.name ?? current.state} | source{' '}
-        {current.source} | opened {new Date(current.created_at).toLocaleString()}
-        {current.closed_at && ` | closed ${new Date(current.closed_at).toLocaleString()}`}
-      </p>
+    <article className="case-page">
+      <header className="case-head">
+        <div className="case-tags">
+          <span className={`pill sev-${current.severity}`}>{current.severity}</span>
+          {current.sla_due_at && current.sla_status && (
+            <span className={`pill sla-${current.sla_status}`}>SLA {dueLabel(current.sla_due_at)}</span>
+          )}
+          {current.major_incident_at && <span className="tag tag-major">Major incident</span>}
+          {current.restricted && <span className="tag">Restricted</span>}
+        </div>
+        <h2>
+          #{current.number} {current.title}
+        </h2>
+        <p className="case-meta">
+          {current.priority} {current.severity} | {state?.name ?? current.state} | source{' '}
+          {current.source} | opened {new Date(current.created_at).toLocaleString()}
+          {current.closed_at && ` | closed ${new Date(current.closed_at).toLocaleString()}`}
+        </p>
+      </header>
       {current.merged_into && (
         <p>
           Merged into <Link to={`/t/${slug}/cases/${current.merged_into}`}>#{current.merged_into}</Link>
@@ -197,7 +208,7 @@ export function CasePage() {
       </table>
 
       {canWrite && !state?.terminal && (
-        <div className="inline-form">
+        <div className="inline-form case-actions">
           {!current.acknowledged_at && (
             <button
               type="button"

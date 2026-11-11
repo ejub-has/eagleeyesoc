@@ -61,3 +61,10 @@ def test_worst_status() -> None:
     assert [c.status for c in clocks] == ["late", "warning", "pending", "pending"]
     assert sla.worst(clocks) == "warning"
     assert sla.worst([]) is None
+
+
+def test_next_due_is_the_earliest_unmet_deadline() -> None:
+    met: dict[sla.Step, datetime | None] = {**NOTHING, "acknowledge": at(5)}
+    assert sla.next_due(sla.clocks(TARGET, OPENED, met, at(10))) == at(60)
+    everything: dict[sla.Step, datetime | None] = dict.fromkeys(sla.STEPS, at(5))
+    assert sla.next_due(sla.clocks(TARGET, OPENED, everything, at(10))) is None

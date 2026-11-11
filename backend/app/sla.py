@@ -46,3 +46,8 @@ def clocks(
 def worst(statuses: list[SlaClock]) -> Status | None:
     present = {c.status for c in statuses}
     return next((s for s in SEVERITY_ORDER if s in present), None)
+
+
+def next_due(clocks: list[SlaClock]) -> datetime | None:
+    """When the earliest unmet clock is due; None once every clock is met."""
+    return min((c.due_at for c in clocks if c.met_at is None), default=None)

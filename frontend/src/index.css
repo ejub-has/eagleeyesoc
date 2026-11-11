@@ -722,6 +722,7 @@ input[type='number'] {
 
 .pill {
   display: inline-block;
+  font-variant-numeric: tabular-nums;
   padding: 0.15rem 0.65rem;
   border-radius: 999px;
   background: var(--field);

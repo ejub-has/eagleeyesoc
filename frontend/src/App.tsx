@@ -148,10 +148,11 @@ function TenantLayout({ me }: { me: Me }) {
   if (!tenant) return <Navigate to="/" replace />
   const isAdmin = ['config:manage', 'tokens:manage'].some((p) => tenant.permissions.includes(p))
 
+  const tenantSlug = tenant.slug
   function quickSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const q = String(new FormData(event.currentTarget).get('q')).trim()
-    if (q) navigate(`/t/${tenant.slug}/search?q=${encodeURIComponent(q)}`)
+    if (q) navigate(`/t/${tenantSlug}/search?q=${encodeURIComponent(q)}`)
   }
 
   const tenantPicker = (

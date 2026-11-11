@@ -4,7 +4,7 @@
   "sslRequired": "external",
   "bruteForceProtected": true,
   "otpPolicyType": "totp",
-  "otpPolicyAlgorithm": "HmacSHA256",
+  "otpPolicyAlgorithm": "HmacSHA1",
   "otpPolicyDigits": 6,
   "otpPolicyPeriod": 30,
   "browserFlow": "browser-mfa",

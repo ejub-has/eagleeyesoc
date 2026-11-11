@@ -24,3 +24,11 @@ updates:
     cooldown: { default-days: 7 }
     groups:
       npm: { patterns: ["*"], update-types: [minor, patch] }
+  - package-ecosystem: terraform
+    directory: /infra/terraform
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+  - package-ecosystem: devcontainers
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }

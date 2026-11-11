@@ -4,7 +4,7 @@ A SOC cyber incident response case management tool. See `PLAN.md` for scope and 
 
 ## Local development
 
-Requires Docker, `uv`, and Node.js.
+Requires Docker, `uv`, and Node.js, or use GitHub Codespaces from VS Code with nothing installed locally (`docs/codespaces.md`).
 
 ```sh
 docker compose -f deploy/compose.yaml up --build -d --wait
@@ -26,6 +26,8 @@ Dev sign-in accounts (realm `casemgr`; each enrolls a TOTP app on first sign-in)
 | analyst/analyst | analyst in `detect-respond` |
 
 Access comes from IdP groups named `casemgr-<tenant>-<role>` (or `casemgr-platform_admin`).
+
+`deploy/load-samples.sh <token>` sends the sample CrowdStrike and Elastic alerts.
 
 Alerts arrive through `POST /api/tenants/<tenant>/alerts` or `POST /api/tenants/<tenant>/webhooks/<source>?template=<key>`, using an API token with the `alerts:write` scope. Mail sent to `intake@example.test` becomes a case when the intake job runs:
 

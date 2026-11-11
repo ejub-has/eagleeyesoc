@@ -147,6 +147,22 @@ test('a case opened from the dashboard keeps the dashboard underneath', async ()
   expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument()
 })
 
+test('a case reached by its URL opens linked cases over the cases list', async () => {
+  const merged = { ...CASE, merged_into: 9 }
+  mockApi({
+    'GET /api/me': () => json(ME),
+    'GET /api/tenants/detect-respond/config': () => json(CONFIG),
+    'GET /api/tenants/detect-respond/members': () => json(MEMBERS),
+    'GET /api/tenants/detect-respond/cases': () => json([CASE]),
+    'GET /api/tenants/detect-respond/cases/7': () => json(merged),
+    'GET /api/tenants/detect-respond/cases/9': () => json({ ...CASE, number: 9, title: 'Parent case' }),
+  })
+  renderApp('/t/detect-respond/cases/7')
+  fireEvent.click(await screen.findByRole('link', { name: '#9' }))
+  expect(await screen.findByRole('heading', { name: '#9 Parent case' })).toBeInTheDocument()
+  expect(screen.getAllByRole('dialog')).toHaveLength(1)
+})
+
 test('explains when the user has no tenants', async () => {
   signedIn({ ...ME, tenants: [] })
   renderApp()

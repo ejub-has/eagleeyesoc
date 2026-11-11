@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, type Location } from 'react-router'
+import { matchPath, useLocation, useNavigate, type Location } from 'react-router'
 
 /** Routing state that opens a case over the page it was opened from. */
 export interface CaseState {
@@ -10,10 +10,19 @@ export function useBackground(): Location | undefined {
   return (useLocation().state as CaseState | null)?.background
 }
 
-/** State for a link to a case: open it over the current page (or the same page, from a case). */
+/**
+ * State for a link to a case: open it over the current page. From a case that is already
+ * open, keep the page under it; a case reached by its own URL sits over the cases list.
+ */
 export function useCaseState(): CaseState {
   const location = useLocation()
-  return { background: useBackground() ?? location }
+  const background = useBackground()
+  if (background) return { background }
+  const onCase = matchPath('/t/:slug/cases/:number', location.pathname)
+  if (onCase) {
+    return { background: { ...location, pathname: `/t/${onCase.params.slug}`, search: '', state: null } }
+  }
+  return { background: location }
 }
 
 /** Navigate to a case, opening it over the current page. */

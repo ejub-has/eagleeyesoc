@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { Link, Outlet, useMatch } from 'react-router'
 import { api, describeError } from '../api/client'
 import { useMembers, useTenantConfig } from '../api/queries'
@@ -15,6 +15,7 @@ export function CasesPage() {
   const caseOpen = !!useMatch('/t/:slug/cases/:number')
   const [state, setState] = useState('')
   const [creating, setCreating] = useState(false)
+  const filterId = useId()
   const config = useTenantConfig(slug)
   const members = useMembers(slug)
   const cases = useQuery({
@@ -66,17 +67,17 @@ export function CasesPage() {
           <h2>Cases</h2>
           {cases.data && <span className="page-count">{cases.data.length} shown</span>}
           <div className="page-tools">
-            <label className="filter">
-              Show{' '}
-              <select value={state} onChange={(e) => setState(e.target.value)}>
-                <option value="">All states</option>
+            <div className="filter">
+              <label htmlFor={filterId}>Show</label>
+              <select id={filterId} value={state} onChange={(e) => setState(e.target.value)}>
+                <option value="">All</option>
                 {config.data?.states.map((s) => (
                   <option key={s.key} value={s.key}>
                     {s.name}
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
             {canCreate && (
               <button
                 type="button"

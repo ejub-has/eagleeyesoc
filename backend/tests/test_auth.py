@@ -118,6 +118,19 @@ async def test_login_replaces_grants_with_current_groups(
     assert [t["slug"] for t in me["tenants"]] == ["insider-threat"]
 
 
+async def test_theme_preference_follows_the_user(make_user: MakeUser) -> None:
+    user = await make_user({"detect-respond": ["analyst"]})
+    assert (await user.client.get("/api/me")).json()["theme"] == "system"
+
+    saved = await user.client.patch("/api/me/preferences", json={"theme": "dark"})
+    assert saved.status_code == 200
+    assert saved.json() == {"theme": "dark"}
+    assert (await user.client.get("/api/me")).json()["theme"] == "dark"
+
+    rejected = await user.client.patch("/api/me/preferences", json={"theme": "neon"})
+    assert rejected.status_code == 422
+
+
 async def test_failed_login_is_rejected_and_audited(
     client: AsyncClient, monkeypatch: MonkeyPatch, owner: AsyncEngine
 ) -> None:

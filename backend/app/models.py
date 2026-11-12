@@ -31,6 +31,7 @@ class User(Base):
     email: Mapped[str | None]
     display_name: Mapped[str]
     is_platform_admin: Mapped[bool] = mapped_column(server_default="false")
+    theme: Mapped[str] = mapped_column(server_default="system")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     last_login_at: Mapped[datetime | None]
 

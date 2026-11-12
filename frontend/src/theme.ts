@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export type ThemeChoice = 'light' | 'dark' | 'system'
 
@@ -27,15 +27,32 @@ export function applyTheme(choice: ThemeChoice) {
   else document.documentElement.dataset.theme = choice
 }
 
-export function useTheme(): [ThemeChoice, (choice: ThemeChoice) => void] {
+/**
+ * The theme choice. Saved in this browser so the page paints in the right theme at once;
+ * `saved` is the choice stored on the user's profile, adopted when it arrives or changes
+ * (signing in on another device), and `save` stores a new choice there.
+ */
+export function useTheme(
+  saved?: ThemeChoice,
+  save?: (choice: ThemeChoice) => void,
+): [ThemeChoice, (choice: ThemeChoice) => void] {
   const [choice, setChoice] = useState<ThemeChoice>(() => {
     const stored = read(THEME_KEY)
     return stored === 'light' || stored === 'dark' ? stored : 'system'
   })
+
+  useEffect(() => {
+    if (saved) setChoice(saved)
+  }, [saved])
+
+  useEffect(() => {
+    write(THEME_KEY, choice)
+    applyTheme(choice)
+  }, [choice])
+
   function change(next: ThemeChoice) {
-    write(THEME_KEY, next)
-    applyTheme(next)
     setChoice(next)
+    save?.(next)
   }
   return [choice, change]
 }

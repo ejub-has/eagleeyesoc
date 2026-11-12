@@ -16,6 +16,7 @@ const ME: Me = {
     { slug: 'detect-respond', name: 'Detect and Respond', permissions: ['cases:read'] },
     { slug: 'insider-threat', name: 'Insider Threat', permissions: ['cases:read'] },
   ],
+  theme: 'system',
 }
 
 afterEach(() => {

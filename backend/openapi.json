@@ -9115,8 +9115,8 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 100,
-                "minimum": 0
+                "maximum": 100.0,
+                "minimum": 0.0
               },
               {
                 "type": "null"

@@ -235,6 +235,12 @@ class Observable(Base):
     type: Mapped[str]
     value: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    verdict: Mapped[str] = mapped_column(server_default="unknown")
+    confidence: Mapped[int | None]
+    verdict_expires_at: Mapped[datetime | None]
+    verdict_note: Mapped[str | None]
+    verdict_by: Mapped[str | None]
+    verdict_at: Mapped[datetime | None]
 
 
 class CaseObservable(Base):

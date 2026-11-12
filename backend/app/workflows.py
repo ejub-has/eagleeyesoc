@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import actions, audit, journal
+from app import actions, audit, integrations, journal
 from app.models import Alert, Case, Workflow, WorkflowRun, WorkflowStep
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
@@ -22,6 +22,7 @@ Path = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.\-\[\]]{1,200}$")
 Mode = Literal["auto", "approval"]
 
 DONE = {"succeeded", "failed", "skipped", "rejected"}
+INTEGRATIONS = integrations  # connector actions register on import
 TEMPLATE = re.compile(r"\{\{\s*([A-Za-z0-9_.\-\[\]]+)\s*\}\}")
 
 

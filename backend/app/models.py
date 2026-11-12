@@ -491,3 +491,19 @@ class WorkflowStep(Base):
     decision_reason: Mapped[str | None]
     started_at: Mapped[datetime | None]
     finished_at: Mapped[datetime | None]
+
+
+class Connector(Base):
+    __tablename__ = "connectors"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, server_default=func.gen_random_uuid())
+    tenant_id: Mapped[UUID] = mapped_column(ForeignKey("tenants.id"))
+    key: Mapped[str]
+    kind: Mapped[str]
+    name: Mapped[str]
+    settings: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    secret: Mapped[str | None]  # Fernet ciphertext
+    secret_set_at: Mapped[datetime | None]
+    created_by: Mapped[str]
+    updated_by: Mapped[str]
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now())

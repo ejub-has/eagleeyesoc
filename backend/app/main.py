@@ -9,6 +9,7 @@ from app.routers import (
     auth,
     cases,
     config,
+    connectors,
     evidence,
     intake,
     journal,
@@ -36,7 +37,7 @@ app.add_middleware(
 )
 for module in (
     auth, me, tenants, tokens, config, cases, intake, observables, evidence, journal, regulatory,
-    pir, search, analytics, reports, triage, workflows,
+    pir, search, analytics, reports, triage, workflows, connectors,
 ):  # fmt: skip
     app.include_router(module.router)
 

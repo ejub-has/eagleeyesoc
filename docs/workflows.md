@@ -42,9 +42,39 @@ the audit log.
 | --- | --- | --- |
 | Add a note, task, or timeline event | Case | |
 | Call a webhook | Change | HTTPS only; private and internal addresses are refused |
+| Entra ID: look up a user | Read | Name, ID, whether enabled |
+| Entra ID: require a password change | Change | At the next sign-in; no new password to hand out |
+| Entra ID: revoke sign-in sessions | Change | Ends Microsoft 365 (Teams, Outlook) and other Entra sessions |
+| Entra ID: disable or enable a user | Change | |
+| Entra ID: confirm user compromised | Change | Entra ID Protection risk becomes high |
 
-Connector actions (Entra ID, Intune, CrowdStrike, Google Workspace, Slack) are added with
-connectors; see `PLAN.md`.
+Intune, CrowdStrike, Google Workspace and Slack actions follow (see `PLAN.md`).
+
+## Connectors
+
+Actions that call another service use a **connector** from Settings > Connectors (tenant
+admins). A connector's secret is encrypted in the database with a key derived from
+`CASEMGR_SECRET_KEY` and is never shown again; **Test** signs in without changing anything.
+Rotating `CASEMGR_SECRET_KEY` makes stored secrets unreadable: save each connector's secret
+again afterwards. A step can name a connector by key (input *Connector*); left empty, it
+uses the tenant's only connector of that kind.
+
+### Entra ID (Microsoft Graph)
+
+Use a test directory first, never production while you try runbooks out.
+
+1. Entra admin center > App registrations > New registration, e.g. *Eagle Eye workflows*
+   (single tenant, no redirect URI).
+2. API permissions > Add a permission > Microsoft Graph > **Application permissions**:
+   `User.Read.All`, `User.ReadWrite.All` (disable or enable), `User-PasswordProfile.ReadWrite.All`
+   (password change), `User.RevokeSessions.All` (sessions), `IdentityRiskyUser.ReadWrite.All`
+   (confirm compromised). Grant only the ones your runbooks use, then **Grant admin consent**.
+3. Certificates & secrets > New client secret; copy its value.
+4. In Eagle Eye, Settings > Connectors > Add Entra ID connector: the directory (tenant) ID
+   and application (client) ID from the app's Overview, and the secret. Click **Test**.
+
+Graph refuses changes to administrator accounts unless the app also holds a privileged
+directory role; keep runbooks for regular users.
 
 ## Running
 

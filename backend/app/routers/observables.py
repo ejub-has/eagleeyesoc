@@ -77,9 +77,7 @@ async def get_observable(observable_id: UUID, ctx: Reader, db: Db) -> Observable
 
 
 @router.put("/observables/{observable_id}/verdict")
-async def set_verdict(
-    observable_id: UUID, body: VerdictIn, ctx: Writer, db: Db
-) -> ObservablePage:
+async def set_verdict(observable_id: UUID, body: VerdictIn, ctx: Writer, db: Db) -> ObservablePage:
     """Mark the observable malicious, suspicious, benign or unknown for the whole tenant."""
     observable = await db.get(Observable, observable_id)
     if observable is None:

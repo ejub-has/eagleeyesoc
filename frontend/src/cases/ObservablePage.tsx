@@ -94,11 +94,11 @@ function VerdictForm({
   const [expiry, setExpiry] = useState(keep || '90')
   const save = useMutation({
     mutationFn: async (body: VerdictIn) => {
-      const { data, error } = await api.PUT('/api/tenants/{slug}/observables/{observable_id}/verdict', {
-        params: { path: url },
-        body,
-      })
-      if (!data) throw new Error(describeError(error))
+      const { data, error, response } = await api.PUT(
+        '/api/tenants/{slug}/observables/{observable_id}/verdict',
+        { params: { path: url }, body },
+      )
+      if (!data) throw new Error(describeError(error, response.status))
       return data
     },
     onSuccess: (page) => {

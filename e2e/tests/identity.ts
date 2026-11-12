@@ -84,5 +84,6 @@ export async function signIn(page: Page, user: TestUser) {
   if (secondsLeft < 5) await page.waitForTimeout(secondsLeft * 1000 + 250)
   await page.locator('#totp').fill(totp.generate())
   await page.locator('#saveTOTPBtn').click()
-  await expect(page.getByText(user.displayName)).toBeVisible()
+  // The name also appears in owner pickers, so check the signed-in badge itself.
+  await expect(page.locator('.user-name')).toHaveText(user.displayName)
 }

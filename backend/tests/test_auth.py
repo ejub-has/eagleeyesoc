@@ -18,6 +18,7 @@ ADMIN_PERMISSIONS = [
     "config:manage",
     "legal:manage",
     "tokens:manage",
+    "workflows:approve",
 ]
 
 
@@ -99,7 +100,7 @@ async def test_callback_creates_session_and_grants_from_groups(
         {
             "slug": "insider-threat",
             "name": "Insider Threat",
-            "permissions": ["cases:read", "cases:write", "restricted_case"],
+            "permissions": ["cases:read", "cases:write", "restricted_case", "workflows:approve"],
         },
     ]
     assert await audit_actions(owner, f"user:{me['id']}") == ["grants.synced", "auth.login"]

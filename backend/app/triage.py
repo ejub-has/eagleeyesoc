@@ -9,7 +9,7 @@ from pydantic import BaseModel, StringConstraints
 from sqlalchemy import select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import attack, cases
+from app import attack, cases, workflows
 from app.auth import TenantContext
 from app.cases import CaseCreate
 from app.models import Alert, Case, CaseObservable, Observable
@@ -159,6 +159,7 @@ async def promote(
         reason=body.reason,
         attack=mapped,
     )
+    await workflows.on_alert(db, case, alert, ctx.principal.actor)
     return PromoteOut(case_number=case.number, new_case=body.into is None)
 
 

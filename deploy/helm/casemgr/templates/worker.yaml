@@ -1,0 +1,39 @@
+{{- if gt (int .Values.worker.replicas) 0 }}
+# Executes queued workflow steps (runbook actions). Replicas share the queue safely: each
+# step is claimed with SELECT ... FOR UPDATE SKIP LOCKED.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-worker
+  labels:
+    {{- include "casemgr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      {{- include "casemgr.selector" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "casemgr.selector" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+        casemgr.io/database-client: "true"
+        {{- if .Values.workloadIdentity.clientId }}
+        azure.workload.identity/use: "true"
+        {{- end }}
+    spec:
+      {{- include "casemgr.podSecurity" . | nindent 6 }}
+      {{- include "casemgr.backendIdentity" . | nindent 6 }}
+      containers:
+        - name: worker
+          image: {{ .Values.images.backend }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          command: ["python", "-m", "app.jobs", "workflow_worker"]
+          {{- include "casemgr.containerSecurity" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          {{- include "casemgr.backendEnv" (dict "ctx" . "role" "runtime") | nindent 10 }}
+      {{- include "casemgr.backendVolumes" . | nindent 6 }}
+{{- end }}

@@ -437,3 +437,57 @@ class PirAction(Base):
     done_at: Mapped[datetime | None]
     created_by: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class Workflow(Base):
+    __tablename__ = "workflows"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, server_default=func.gen_random_uuid())
+    tenant_id: Mapped[UUID] = mapped_column(ForeignKey("tenants.id"))
+    name: Mapped[str]
+    description: Mapped[str] = mapped_column(server_default="")
+    enabled: Mapped[bool] = mapped_column(server_default="true")
+    trigger: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    steps: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    created_by: Mapped[str]
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_by: Mapped[str]
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class WorkflowRun(Base):
+    __tablename__ = "workflow_runs"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, server_default=func.gen_random_uuid())
+    tenant_id: Mapped[UUID] = mapped_column(ForeignKey("tenants.id"))
+    workflow_id: Mapped[UUID] = mapped_column(ForeignKey("workflows.id"))
+    workflow_name: Mapped[str]
+    case_id: Mapped[UUID] = mapped_column(ForeignKey("cases.id"))
+    alert_id: Mapped[UUID | None] = mapped_column(ForeignKey("alerts.id"))
+    status: Mapped[str]
+    context: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    started_by: Mapped[str]
+    started_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    finished_at: Mapped[datetime | None]
+
+
+class WorkflowStep(Base):
+    __tablename__ = "workflow_steps"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, server_default=func.gen_random_uuid())
+    tenant_id: Mapped[UUID] = mapped_column(ForeignKey("tenants.id"))
+    run_id: Mapped[UUID] = mapped_column(ForeignKey("workflow_runs.id"))
+    position: Mapped[int]
+    name: Mapped[str]
+    action: Mapped[str]
+    mode: Mapped[str]
+    on_error: Mapped[str]
+    inputs: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    status: Mapped[str]
+    output: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    error: Mapped[str | None]
+    decided_by: Mapped[str | None]
+    decided_at: Mapped[datetime | None]
+    decision_reason: Mapped[str | None]
+    started_at: Mapped[datetime | None]
+    finished_at: Mapped[datetime | None]

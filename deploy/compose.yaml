@@ -101,6 +101,14 @@ services:
       interval: 2s
       retries: 30
 
+  # Runs queued workflow steps (runbook actions) a few seconds after they are queued.
+  worker:
+    build: ../backend
+    command: ["python", "-m", "app.jobs", "workflow_worker"]
+    environment: *backend-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
   frontend:
     build: ../frontend
     environment:

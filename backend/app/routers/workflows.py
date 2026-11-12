@@ -8,7 +8,7 @@ from app import actions, cases, workflows
 from app.auth import TenantContext, require
 from app.db import Db
 from app.models import Alert, Case, Workflow, WorkflowRun, WorkflowStep
-from app.workflows import DecisionIn, RunOut, StartIn, WorkflowIn, WorkflowOut
+from app.workflows import RunOut, StartIn, StepDecisionIn, WorkflowIn, WorkflowOut
 
 router = APIRouter(prefix="/api/tenants/{slug}", tags=["workflows"])
 
@@ -147,14 +147,14 @@ async def _decide(
 
 @router.post("/workflow-runs/{run_id}/steps/{step_id}/approve")
 async def approve_step(
-    run_id: UUID, step_id: UUID, body: DecisionIn, ctx: Approver, db: Db
+    run_id: UUID, step_id: UUID, body: StepDecisionIn, ctx: Approver, db: Db
 ) -> RunOut:
     return await _decide(db, ctx, run_id, step_id, True, body.reason)
 
 
 @router.post("/workflow-runs/{run_id}/steps/{step_id}/reject")
 async def reject_step(
-    run_id: UUID, step_id: UUID, body: DecisionIn, ctx: Approver, db: Db
+    run_id: UUID, step_id: UUID, body: StepDecisionIn, ctx: Approver, db: Db
 ) -> RunOut:
     return await _decide(db, ctx, run_id, step_id, False, body.reason)
 

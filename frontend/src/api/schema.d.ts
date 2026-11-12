@@ -1883,6 +1883,13 @@ export interface components {
              */
             created_at: string;
         };
+        /** Condition */
+        Condition: {
+            /** Field */
+            field: string;
+            /** Value */
+            value: string;
+        };
         /**
          * CustodyAction
          * @enum {string}
@@ -1957,6 +1964,20 @@ export interface components {
             };
             /** Open Pir Actions */
             open_pir_actions: number;
+        };
+        /** DecisionIn */
+        DecisionIn: {
+            /** Material */
+            material: boolean;
+            /** Decided By */
+            decided_by: string;
+            /**
+             * Decided At
+             * Format: date-time
+             */
+            decided_at: string;
+            /** Rationale */
+            rationale: string;
         };
         /** DecisionOut */
         DecisionOut: {
@@ -2042,7 +2063,7 @@ export interface components {
         EscalationRule: {
             /** Name */
             name: string;
-            trigger: components["schemas"]["app__tenant_config__Trigger"];
+            trigger: components["schemas"]["Trigger"];
             /**
              * Severities
              * @default []
@@ -2482,7 +2503,7 @@ export interface components {
              * @default []
              */
             depends_on: string[];
-            when?: components["schemas"]["app__tenant_config__Condition"] | null;
+            when?: components["schemas"]["Condition"] | null;
         };
         /** Preferences */
         Preferences: {
@@ -2764,6 +2785,14 @@ export interface components {
              * @default false
              */
             require_pir: boolean;
+        };
+        /** StepDecisionIn */
+        StepDecisionIn: {
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
         };
         /** StepDef */
         StepDef: {
@@ -3469,6 +3498,11 @@ export interface components {
             /** Location */
             location?: string | null;
         };
+        /**
+         * Trigger
+         * @enum {string}
+         */
+        Trigger: "case_created" | "sla_warning" | "sla_breach" | "major_incident" | "clock_warning" | "clock_breach";
         /** UploadIn */
         UploadIn: {
             /** Name */
@@ -3538,6 +3572,25 @@ export interface components {
             /** Set At */
             set_at: string | null;
         };
+        /**
+         * WorkflowCondition
+         * @description A test on one field of the alert, e.g. payload.riskEventType equals passwordSpray.
+         */
+        WorkflowCondition: {
+            /** Path */
+            path: string;
+            /**
+             * Op
+             * @default equals
+             * @enum {string}
+             */
+            op: "equals" | "contains" | "exists";
+            /**
+             * Value
+             * @default
+             */
+            value: string;
+        };
         /** WorkflowIn */
         WorkflowIn: {
             /** Name */
@@ -3552,7 +3605,7 @@ export interface components {
              * @default true
              */
             enabled: boolean;
-            trigger: components["schemas"]["app__workflows__Trigger"];
+            trigger: components["schemas"]["WorkflowTrigger"];
             /** Steps */
             steps: components["schemas"]["StepDef"][];
         };
@@ -3570,7 +3623,7 @@ export interface components {
              * @default true
              */
             enabled: boolean;
-            trigger: components["schemas"]["app__workflows__Trigger"];
+            trigger: components["schemas"]["WorkflowTrigger"];
             /** Steps */
             steps: components["schemas"]["StepDef"][];
             /**
@@ -3586,71 +3639,11 @@ export interface components {
              */
             updated_at: string;
         };
-        /** Workload */
-        Workload: {
-            /** Owner Id */
-            owner_id: string | null;
-            /** Open */
-            open: number;
-        };
-        /** DecisionIn */
-        app__regulatory__DecisionIn: {
-            /** Material */
-            material: boolean;
-            /** Decided By */
-            decided_by: string;
-            /**
-             * Decided At
-             * Format: date-time
-             */
-            decided_at: string;
-            /** Rationale */
-            rationale: string;
-        };
-        /** Condition */
-        app__tenant_config__Condition: {
-            /** Field */
-            field: string;
-            /** Value */
-            value: string;
-        };
         /**
-         * Trigger
-         * @enum {string}
-         */
-        app__tenant_config__Trigger: "case_created" | "sla_warning" | "sla_breach" | "major_incident" | "clock_warning" | "clock_breach";
-        /**
-         * Condition
-         * @description A test on one field of the alert, e.g. payload.riskEventType equals passwordSpray.
-         */
-        app__workflows__Condition: {
-            /** Path */
-            path: string;
-            /**
-             * Op
-             * @default equals
-             * @enum {string}
-             */
-            op: "equals" | "contains" | "exists";
-            /**
-             * Value
-             * @default
-             */
-            value: string;
-        };
-        /** DecisionIn */
-        app__workflows__DecisionIn: {
-            /**
-             * Reason
-             * @default
-             */
-            reason: string;
-        };
-        /**
-         * Trigger
+         * WorkflowTrigger
          * @description Every part must match; empty parts match anything.
          */
-        app__workflows__Trigger: {
+        WorkflowTrigger: {
             /**
              * Sources
              * @default []
@@ -3665,7 +3658,14 @@ export interface components {
              * Conditions
              * @default []
              */
-            conditions: components["schemas"]["app__workflows__Condition"][];
+            conditions: components["schemas"]["WorkflowCondition"][];
+        };
+        /** Workload */
+        Workload: {
+            /** Owner Id */
+            owner_id: string | null;
+            /** Open */
+            open: number;
         };
     };
     responses: never;
@@ -5577,7 +5577,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["app__regulatory__DecisionIn"];
+                "application/json": components["schemas"]["DecisionIn"];
             };
         };
         responses: {
@@ -6356,7 +6356,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["app__workflows__DecisionIn"];
+                "application/json": components["schemas"]["StepDecisionIn"];
             };
         };
         responses: {
@@ -6393,7 +6393,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["app__workflows__DecisionIn"];
+                "application/json": components["schemas"]["StepDecisionIn"];
             };
         };
         responses: {

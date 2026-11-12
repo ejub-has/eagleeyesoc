@@ -163,9 +163,11 @@ async def test_password_spray_runbook_end_to_end(
 async def test_entra_failures_are_explained(
     admin: SignedIn, make_user: MakeUser, tenant: str, graph: dict[str, Any]
 ) -> None:
+    names = iter(range(100))
+
     async def run_step(inputs: dict[str, str]) -> dict[str, Any]:
         runbook = {
-            "name": f"Disable {len(graph['calls'])}-{inputs.get('user')}",
+            "name": f"Disable {next(names)}",
             "trigger": {},
             "steps": [
                 {

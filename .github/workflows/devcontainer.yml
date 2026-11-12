@@ -24,6 +24,10 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
+      # The docker-in-docker feature uses legacy iptables, whose kernel modules the runner
+      # does not load by default (Codespaces hosts do).
+      - name: Load legacy iptables modules on the runner
+        run: sudo modprobe -a ip_tables iptable_nat iptable_filter ip6_tables ip6table_nat
       - name: Build and start the dev container
         run: npx --yes "$DEVCONTAINER_CLI" up --workspace-folder .
       # The feature starts the inner Docker engine in the background; wait up to a minute.

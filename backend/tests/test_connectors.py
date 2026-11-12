@@ -113,7 +113,11 @@ async def test_password_spray_runbook_end_to_end(
                 "action": "entra.require_password_change",
                 "inputs": {"user": user},
             },
-            {"name": "Revoke sessions", "action": "entra.revoke_sessions", "inputs": {"user": user}},
+            {
+                "name": "Revoke sessions",
+                "action": "entra.revoke_sessions",
+                "inputs": {"user": user},
+            },
         ],
     }
     created = await admin.client.post(f"/api/tenants/{tenant}/workflows", json=runbook)
@@ -164,10 +168,17 @@ async def test_entra_failures_are_explained(
             "name": f"Disable {len(graph['calls'])}-{inputs.get('user')}",
             "trigger": {},
             "steps": [
-                {"name": "Disable", "action": "entra.disable_user", "mode": "auto", "inputs": inputs}
+                {
+                    "name": "Disable",
+                    "action": "entra.disable_user",
+                    "mode": "auto",
+                    "inputs": inputs,
+                }
             ],
         }
-        workflow = (await admin.client.post(f"/api/tenants/{tenant}/workflows", json=runbook)).json()
+        workflow = (
+            await admin.client.post(f"/api/tenants/{tenant}/workflows", json=runbook)
+        ).json()
         case = await admin.client.post(
             f"/api/tenants/{tenant}/cases", json={"template": "phishing", "title": "x"}
         )

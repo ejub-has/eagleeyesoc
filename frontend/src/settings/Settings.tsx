@@ -1,6 +1,7 @@
 import { useMembers, useTenantConfig } from '../api/queries'
 import { useTenant } from '../tenant'
 import { TokensPanel } from '../TokensPanel'
+import { ConnectorsPanel } from './ConnectorsPanel'
 import { EscalationEditor } from './EscalationEditor'
 import { FieldsEditor } from './FieldsEditor'
 import { PlaybookEditor } from './PlaybookEditor'
@@ -41,6 +42,7 @@ export function Settings() {
           <RegimesEditor slug={slug} regimes={config.data.regimes} />
         </section>
       )}
+      {canConfigure && <ConnectorsPanel slug={slug} />}
       {permissions.includes('tokens:manage') && <TokensPanel slug={slug} />}
     </>
   )

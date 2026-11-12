@@ -9,6 +9,7 @@ dependencies = [
     "authlib>=1.9.1",
     "azure-identity>=1.25.0",
     "azure-storage-blob>=12.27.0",
+    "cryptography>=50.0.2",
     "email-validator>=2.3.0",
     "fastapi>=0.162.0",
     "fpdf2>=2.8.9",

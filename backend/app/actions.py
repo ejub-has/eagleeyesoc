@@ -43,6 +43,7 @@ class ActionSpec(BaseModel):
     group: str
     impact: Literal["read", "change"]
     inputs: list[InputSpec]
+    connector: str | None = None  # kind of connector the action needs, e.g. entra
 
 
 @dataclass
@@ -72,6 +73,7 @@ def action(
     group: str,
     impact: Literal["read", "change"],
     inputs: list[InputSpec],
+    connector: str | None = None,
 ) -> Callable[[Runner], Runner]:
     def register(run: Runner) -> Runner:
         spec = ActionSpec(
@@ -80,7 +82,20 @@ def action(
             description=description,
             group=group,
             impact=impact,
-            inputs=inputs,
+            inputs=inputs
+            + (
+                [
+                    InputSpec(
+                        name="connector",
+                        label="Connector",
+                        required=False,
+                        help=f"key of the {connector} connector; empty uses the only one",
+                    )
+                ]
+                if connector
+                else []
+            ),
+            connector=connector,
         )
         REGISTRY[key] = Action(spec, run)
         return run

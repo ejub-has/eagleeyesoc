@@ -2,10 +2,11 @@
 
 from collections.abc import Sequence
 from datetime import datetime
+from enum import StrEnum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints
 from sqlalchemy import Select, delete, distinct, func, select, tuple_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,12 +35,68 @@ class CandidateOut(Candidate):
     linked: bool
 
 
+class Verdict(StrEnum):
+    MALICIOUS = "malicious"
+    SUSPICIOUS = "suspicious"
+    BENIGN = "benign"
+    UNKNOWN = "unknown"
+
+
+class VerdictIn(BaseModel):
+    """A verdict for the whole tenant; unknown clears confidence and expiry."""
+
+    verdict: Verdict
+    confidence: Annotated[int, Field(ge=0, le=100)] | None = None
+    expires_at: AwareDatetime | None = None  # reads as unknown again from this moment
+    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)] | None = None
+
+
+class VerdictOut(BaseModel):
+    verdict: Verdict  # in effect now: unknown once the verdict has expired
+    expired: bool  # a verdict was set but its expiry has passed
+    set_verdict: Verdict  # as last set, even if expired
+    confidence: int | None
+    expires_at: datetime | None
+    note: str | None
+    set_by: str | None  # actor, e.g. user:<id>
+    set_at: datetime | None
+
+
+def verdict_out(observable: Observable, now: datetime) -> VerdictOut:
+    expires = observable.verdict_expires_at
+    expired = expires is not None and expires <= now and observable.verdict != Verdict.UNKNOWN
+    return VerdictOut(
+        verdict=Verdict.UNKNOWN if expired else Verdict(observable.verdict),
+        expired=expired,
+        set_verdict=Verdict(observable.verdict),
+        confidence=observable.confidence,
+        expires_at=expires,
+        note=observable.verdict_note,
+        set_by=observable.verdict_by,
+        set_at=observable.verdict_at,
+    )
+
+
+async def set_verdict(
+    db: AsyncSession, observable: Observable, body: VerdictIn, actor: str, now: datetime
+) -> None:
+    unknown = body.verdict is Verdict.UNKNOWN
+    observable.verdict = body.verdict
+    observable.confidence = None if unknown else body.confidence
+    observable.verdict_expires_at = None if unknown else body.expires_at
+    observable.verdict_note = body.note or None
+    observable.verdict_by = actor
+    observable.verdict_at = now
+    await db.flush()
+
+
 class ObservableOut(BaseModel):
     id: UUID
     type: ObservableType
     value: str
     defanged: str
     other_cases: int  # other cases the viewer can see that share this observable
+    verdict: VerdictOut
 
 
 class ObservableCase(BaseModel):
@@ -57,6 +114,7 @@ class ObservablePage(BaseModel):
     type: ObservableType
     value: str
     defanged: str
+    verdict: VerdictOut
     cases: list[ObservableCase]
 
 
@@ -128,7 +186,9 @@ async def own_ids(db: AsyncSession, case: Case) -> set[UUID]:
     return set(await db.scalars(query))
 
 
-async def for_case(db: AsyncSession, case: Case, show_restricted: bool) -> list[ObservableOut]:
+async def for_case(
+    db: AsyncSession, case: Case, show_restricted: bool, now: datetime
+) -> list[ObservableOut]:
     observables = (
         await db.scalars(
             select(Observable)
@@ -160,13 +220,14 @@ async def for_case(db: AsyncSession, case: Case, show_restricted: bool) -> list[
             value=o.value,
             defanged=defang(ObservableType(o.type), o.value),
             other_cases=counts.get(o.id, 0),
+            verdict=verdict_out(o, now),
         )
         for o in observables
     ]
 
 
 async def page(
-    db: AsyncSession, observable_id: UUID, show_restricted: bool
+    db: AsyncSession, observable_id: UUID, show_restricted: bool, now: datetime
 ) -> ObservablePage | None:
     observable = await db.get(Observable, observable_id)
     if observable is None:
@@ -186,5 +247,6 @@ async def page(
         type=type_,
         value=observable.value,
         defanged=defang(type_, observable.value),
+        verdict=verdict_out(observable, now),
         cases=[ObservableCase.model_validate(c) for c in cases],
     )

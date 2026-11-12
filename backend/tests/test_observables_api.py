@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 from httpx2 import AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from tests.conftest import MakeToken, MakeUser, SignedIn, audit_actions, new_tenant
@@ -231,3 +232,63 @@ async def test_read_only_roles_cannot_link(make_user: MakeUser, tenant: str) -> 
     assert (await link(executive.client, tenant, number, ("ipv4", "10.0.0.1"))).status_code == 403
     extract = await executive.client.post(case_url(tenant, number, "/observables/extract"), json={})
     assert extract.status_code == 403
+
+
+async def test_verdicts_apply_tenant_wide_and_expire(
+    make_user: MakeUser, tenant: str, owner: AsyncEngine
+) -> None:
+    analyst = await make_user({tenant: ["analyst"]})
+    executive = await make_user({tenant: ["executive"]})
+    first = await new_case(analyst.client, tenant)
+    second = await new_case(analyst.client, tenant)
+    await link(analyst.client, tenant, first, ("domain", "evil.example"))
+    case = (await link(analyst.client, tenant, second, ("domain", "evil.example"))).json()
+    observable = case["observables"][0]
+    assert observable["verdict"]["verdict"] == "unknown"
+    url = f"/api/tenants/{tenant}/observables/{observable['id']}/verdict"
+
+    marked = await analyst.client.put(
+        url,
+        json={
+            "verdict": "malicious",
+            "confidence": 90,
+            "expires_at": "2099-01-01T00:00:00Z",
+            "note": "Phishing kit host",
+        },
+    )
+    assert marked.status_code == 200, marked.text
+    verdict = marked.json()["verdict"]
+    assert verdict["verdict"] == "malicious" and verdict["confidence"] == 90
+    assert verdict["set_by"] == f"user:{analyst.id}" and verdict["note"] == "Phishing kit host"
+    # The verdict belongs to the observable, so every case linking it shows it.
+    shown = (await analyst.client.get(case_url(tenant, first))).json()["observables"][0]
+    assert shown["verdict"]["verdict"] == "malicious"
+    assert "observable.verdict" in await audit_actions(owner, f"user:{analyst.id}")
+
+    # Once the expiry passes, the verdict reads as unknown but keeps what was set.
+    async with owner.begin() as conn:
+        await conn.execute(
+            text(
+                "UPDATE observables SET verdict_expires_at = now() - interval '1 minute' "
+                "WHERE id = :id"
+            ),
+            {"id": observable["id"]},
+        )
+    aged = (await analyst.client.get(case_url(tenant, first))).json()["observables"][0]
+    assert aged["verdict"]["verdict"] == "unknown"
+    assert aged["verdict"]["expired"] is True and aged["verdict"]["set_verdict"] == "malicious"
+
+    # Unknown clears confidence and expiry.
+    cleared = (await analyst.client.put(url, json={"verdict": "unknown", "confidence": 50})).json()
+    assert cleared["verdict"]["confidence"] is None and cleared["verdict"]["expires_at"] is None
+
+    past = await analyst.client.put(
+        url, json={"verdict": "benign", "expires_at": "2000-01-01T00:00:00Z"}
+    )
+    assert past.status_code == 422
+    assert (await analyst.client.put(url, json={"verdict": "evil"})).status_code == 422
+    too_sure = await analyst.client.put(url, json={"verdict": "benign", "confidence": 101})
+    assert too_sure.status_code == 422
+    assert (await executive.client.put(url, json={"verdict": "benign"})).status_code == 403
+    missing = f"/api/tenants/{tenant}/observables/00000000-0000-0000-0000-000000000000/verdict"
+    assert (await analyst.client.put(missing, json={"verdict": "benign"})).status_code == 404

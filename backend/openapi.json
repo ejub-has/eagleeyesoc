@@ -2119,6 +2119,69 @@
         }
       }
     },
+    "/api/tenants/{slug}/observables/{observable_id}/verdict": {
+      "put": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "Set Verdict",
+        "description": "Mark the observable malicious, suspicious, benign or unknown for the whole tenant.",
+        "operationId": "set_verdict_api_tenants__slug__observables__observable_id__verdict_put",
+        "parameters": [
+          {
+            "name": "observable_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Observable Id"
+            }
+          },
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerdictIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservablePage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tenants/{slug}/cases/{number}/evidence/uploads": {
       "post": {
         "tags": [
@@ -6782,6 +6845,9 @@
           "other_cases": {
             "type": "integer",
             "title": "Other Cases"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/VerdictOut"
           }
         },
         "type": "object",
@@ -6790,7 +6856,8 @@
           "type",
           "value",
           "defanged",
-          "other_cases"
+          "other_cases",
+          "verdict"
         ],
         "title": "ObservableOut"
       },
@@ -6812,6 +6879,9 @@
             "type": "string",
             "title": "Defanged"
           },
+          "verdict": {
+            "$ref": "#/components/schemas/VerdictOut"
+          },
           "cases": {
             "items": {
               "$ref": "#/components/schemas/ObservableCase"
@@ -6826,6 +6896,7 @@
           "type",
           "value",
           "defanged",
+          "verdict",
           "cases"
         ],
         "title": "ObservablePage"
@@ -9024,6 +9095,149 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "Verdict": {
+        "type": "string",
+        "enum": [
+          "malicious",
+          "suspicious",
+          "benign",
+          "unknown"
+        ],
+        "title": "Verdict"
+      },
+      "VerdictIn": {
+        "properties": {
+          "verdict": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict"
+        ],
+        "title": "VerdictIn",
+        "description": "A verdict for the whole tenant; unknown clears confidence and expiry."
+      },
+      "VerdictOut": {
+        "properties": {
+          "verdict": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "expired": {
+            "type": "boolean",
+            "title": "Expired"
+          },
+          "set_verdict": {
+            "$ref": "#/components/schemas/Verdict"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "set_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Set By"
+          },
+          "set_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Set At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "verdict",
+          "expired",
+          "set_verdict",
+          "confidence",
+          "expires_at",
+          "note",
+          "set_by",
+          "set_at"
+        ],
+        "title": "VerdictOut"
       },
       "Workload": {
         "properties": {

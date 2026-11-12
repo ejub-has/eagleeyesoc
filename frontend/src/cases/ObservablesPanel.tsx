@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api, describeError, type Candidate, type Case, type ObservableType } from '../api/client'
+import { VerdictPill } from './VerdictPill'
 
 const TYPES: ObservableType[] = [
   'ipv4', 'ipv6', 'domain', 'url', 'md5', 'sha1', 'sha256', 'email', 'filename',
@@ -108,6 +109,9 @@ export function ObservablesPanel({
                   <Link to={`/t/${slug}/observables/${o.id}`}>
                     <code>{o.defanged}</code>
                   </Link>
+                </td>
+                <td>
+                  <VerdictPill verdict={o.verdict} />
                 </td>
                 <td>{o.other_cases > 0 ? `seen in ${o.other_cases} other case${o.other_cases > 1 ? 's' : ''}` : ''}</td>
                 {editable && (

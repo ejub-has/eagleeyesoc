@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -8,8 +9,8 @@ from app import cases, observable_store, tenant_config
 from app.auth import TenantContext, require
 from app.cases import CaseOut
 from app.db import Db
-from app.models import Alert
-from app.observable_store import CandidateOut, ExtractIn, LinkIn, ObservablePage
+from app.models import Alert, Observable
+from app.observable_store import CandidateOut, ExtractIn, LinkIn, ObservablePage, VerdictIn
 from app.observables import defang, extract, normalize, strings_in
 
 router = APIRouter(prefix="/api/tenants/{slug}", tags=["observables"])
@@ -66,8 +67,36 @@ async def unlink_observable(number: int, observable_id: UUID, ctx: Writer, db: D
 
 @router.get("/observables/{observable_id}")
 async def get_observable(observable_id: UUID, ctx: Reader, db: Db) -> ObservablePage:
-    found = await observable_store.page(db, observable_id, "restricted_case" in ctx.permissions)
+    found = await observable_store.page(
+        db, observable_id, "restricted_case" in ctx.permissions, datetime.now(UTC)
+    )
     if found is None:
         raise HTTPException(404, "Observable not found")
     await ctx.audit(db, "observable.view", f"observable:{observable_id}")
+    return found
+
+
+@router.put("/observables/{observable_id}/verdict")
+async def set_verdict(observable_id: UUID, body: VerdictIn, ctx: Writer, db: Db) -> ObservablePage:
+    """Mark the observable malicious, suspicious, benign or unknown for the whole tenant."""
+    observable = await db.get(Observable, observable_id)
+    if observable is None:
+        raise HTTPException(404, "Observable not found")
+    now = datetime.now(UTC)
+    if body.expires_at is not None and body.expires_at <= now:
+        cases.invalid("the expiry must be in the future", "expires_at")
+    await observable_store.set_verdict(db, observable, body, ctx.principal.actor, now)
+    await ctx.audit(
+        db,
+        "observable.verdict",
+        f"observable:{observable_id}",
+        verdict=body.verdict,
+        confidence=body.confidence,
+        expires_at=body.expires_at.isoformat() if body.expires_at else None,
+    )
+    found = await observable_store.page(
+        db, observable_id, "restricted_case" in ctx.permissions, now
+    )
+    if found is None:  # unreachable: the observable was just read in this transaction
+        raise HTTPException(404, "Observable not found")
     return found

@@ -637,6 +637,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tenants/{slug}/observables/{observable_id}/verdict": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Verdict
+         * @description Mark the observable malicious, suspicious, benign or unknown for the whole tenant.
+         */
+        put: operations["set_verdict_api_tenants__slug__observables__observable_id__verdict_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tenants/{slug}/cases/{number}/evidence/uploads": {
         parameters: {
             query?: never;
@@ -2185,6 +2205,7 @@ export interface components {
             defanged: string;
             /** Other Cases */
             other_cases: number;
+            verdict: components["schemas"]["VerdictOut"];
         };
         /** ObservablePage */
         ObservablePage: {
@@ -2198,6 +2219,7 @@ export interface components {
             value: string;
             /** Defanged */
             defanged: string;
+            verdict: components["schemas"]["VerdictOut"];
             /** Cases */
             cases: components["schemas"]["ObservableCase"][];
         };
@@ -3210,6 +3232,41 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * Verdict
+         * @enum {string}
+         */
+        Verdict: "malicious" | "suspicious" | "benign" | "unknown";
+        /**
+         * VerdictIn
+         * @description A verdict for the whole tenant; unknown clears confidence and expiry.
+         */
+        VerdictIn: {
+            verdict: components["schemas"]["Verdict"];
+            /** Confidence */
+            confidence?: number | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Note */
+            note?: string | null;
+        };
+        /** VerdictOut */
+        VerdictOut: {
+            verdict: components["schemas"]["Verdict"];
+            /** Expired */
+            expired: boolean;
+            set_verdict: components["schemas"]["Verdict"];
+            /** Confidence */
+            confidence: number | null;
+            /** Expires At */
+            expires_at: string | null;
+            /** Note */
+            note: string | null;
+            /** Set By */
+            set_by: string | null;
+            /** Set At */
+            set_at: string | null;
         };
         /** Workload */
         Workload: {
@@ -4511,6 +4568,42 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObservablePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_verdict_api_tenants__slug__observables__observable_id__verdict_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                observable_id: string;
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerdictIn"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

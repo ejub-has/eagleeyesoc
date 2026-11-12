@@ -351,7 +351,9 @@ async def case_out(
         assets=[AssetOut.model_validate(a) for a in assets],
         tasks=tasks.task_outs(await tasks.case_tasks(db, case.id)),
         sla=case_clocks,
-        observables=await observable_store.for_case(db, case, "restricted_case" in ctx.permissions),
+        observables=await observable_store.for_case(
+            db, case, "restricted_case" in ctx.permissions, now
+        ),
         evidence=await evidence.for_case(db, case),
         timeline=await journal.timeline(db, case),
         notes=await journal.notes(db, case),

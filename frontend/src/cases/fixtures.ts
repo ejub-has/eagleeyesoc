@@ -1,4 +1,4 @@
-import type { Case, Member, TenantAccess, TenantConfig } from '../api/client'
+import type { Case, Member, TenantAccess, TenantConfig, VerdictOut } from '../api/client'
 
 const SLA = { acknowledge_minutes: 15, triage_minutes: 60, contain_minutes: 240, resolve_minutes: 1440 }
 
@@ -54,6 +54,17 @@ export const CONFIG: TenantConfig = {
     { key: 'phishing', name: 'Phishing', impact: 'low', urgency: 'high', tlp: 'amber', pap: 'amber', team: 'soc', tasks: [] },
     { key: 'bec', name: 'BEC', impact: 'high', urgency: 'low', tlp: 'amber', pap: 'amber', team: null, tasks: [] },
   ],
+}
+
+export const NO_VERDICT: VerdictOut = {
+  verdict: 'unknown',
+  expired: false,
+  set_verdict: 'unknown',
+  confidence: null,
+  expires_at: null,
+  note: null,
+  set_by: null,
+  set_at: null,
 }
 
 export const CASE: Case = {
@@ -283,6 +294,16 @@ export const CASE: Case = {
       value: 'evil.example',
       defanged: 'evil[.]example',
       other_cases: 2,
+      verdict: {
+        verdict: 'malicious',
+        expired: false,
+        set_verdict: 'malicious',
+        confidence: 80,
+        expires_at: '2099-01-01T00:00:00Z',
+        note: null,
+        set_by: 'user:u1',
+        set_at: '2026-10-31T11:00:00Z',
+      },
     },
   ],
 }

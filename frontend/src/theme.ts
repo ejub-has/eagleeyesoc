@@ -37,13 +37,16 @@ export function useTheme(
   save?: (choice: ThemeChoice) => void,
 ): [ThemeChoice, (choice: ThemeChoice) => void] {
   const [choice, setChoice] = useState<ThemeChoice>(() => {
+    if (saved) return saved
     const stored = read(THEME_KEY)
     return stored === 'light' || stored === 'dark' ? stored : 'system'
   })
-
-  useEffect(() => {
+  // Adopt the profile's choice when it arrives or changes (adjusting state while rendering).
+  const [adopted, setAdopted] = useState(saved)
+  if (saved !== adopted) {
+    setAdopted(saved)
     if (saved) setChoice(saved)
-  }, [saved])
+  }
 
   useEffect(() => {
     write(THEME_KEY, choice)

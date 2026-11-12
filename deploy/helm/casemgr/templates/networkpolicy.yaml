@@ -62,7 +62,7 @@ spec:
   podSelector:
     matchExpressions:
       - { key: app.kubernetes.io/instance, operator: In, values: [{{ .Release.Name }}] }
-      - { key: app.kubernetes.io/component, operator: In, values: [backend, job] }
+      - { key: app.kubernetes.io/component, operator: In, values: [backend, job, worker] }
   policyTypes: [Egress]
   egress:
     - to:

@@ -30,6 +30,7 @@ from app import (
     regulatory,
     sla,
     tasks,
+    workflows,
 )  # fmt: skip
 from app.attack import Tactic
 from app.auth import TenantContext, deny
@@ -499,6 +500,8 @@ async def ingest(
         {"case": number, "source": alert.source, "queued": queued}
         | ({"attack": mapped} if mapped else {}),
     )
+    if case is not None:
+        await workflows.on_alert(db, case, row, actor)
     return IntakeOut(
         alert_id=row.id, case_number=number, new_case=new_case, duplicate=False, queued=queued
     )

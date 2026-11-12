@@ -6,7 +6,7 @@ import sys
 
 from app import audit
 from app.db import SessionLocal
-from app.jobs import clocks, email_intake, evidence_hash, retention, sla
+from app.jobs import clocks, email_intake, evidence_hash, retention, sla, workflows
 
 
 async def audit_verify() -> int:
@@ -24,6 +24,8 @@ JOBS = {
     "evidence_hash": evidence_hash.run,
     "retention": retention.run,
     "sla": sla.run,
+    "workflow_worker": workflows.worker,
+    "workflows": workflows.run,
 }
 
 

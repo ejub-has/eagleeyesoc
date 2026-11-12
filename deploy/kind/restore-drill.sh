@@ -39,7 +39,7 @@ helm install casemgr-db deploy/helm/casemgr-db -n "$NS" -f deploy/kind/db-values
 kubectl -n "$NS" wait cluster/casemgr-db --for=condition=Ready --timeout=20m
 # The drill copy is reached only from inside the cluster, so its Gateway gets no node port.
 helm install casemgr deploy/helm/casemgr -n "$NS" -f deploy/kind/values.yaml \
-  --set gateway.envoyProxy= --set jobs=null --set backend.replicas=1 --set frontend.replicas=1 \
+  --set gateway.envoyProxy= --set jobs=null --set backend.replicas=1 --set frontend.replicas=1 --set worker.replicas=0 \
   --set backend.resources.requests.cpu=50m --set frontend.resources.requests.cpu=10m \
   --wait --timeout 15m
 

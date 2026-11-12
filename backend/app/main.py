@@ -21,6 +21,7 @@ from app.routers import (
     tenants,
     tokens,
     triage,
+    workflows,
 )
 
 app = FastAPI(title="Eagle Eye")
@@ -35,7 +36,7 @@ app.add_middleware(
 )
 for module in (
     auth, me, tenants, tokens, config, cases, intake, observables, evidence, journal, regulatory,
-    pir, search, analytics, reports, triage,
+    pir, search, analytics, reports, triage, workflows,
 ):  # fmt: skip
     app.include_router(module.router)
 

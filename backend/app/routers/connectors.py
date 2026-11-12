@@ -4,12 +4,11 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
-from app import connectors, workflows
+from app import connectors, integrations, workflows
 from app.actions import ActionFailed
 from app.auth import TenantContext, require
 from app.connectors import ConnectorIn, ConnectorOut
 from app.db import Db
-from app.integrations import entra
 from app.models import Connector
 
 router = APIRouter(prefix="/api/tenants/{slug}", tags=["connectors"])
@@ -91,7 +90,7 @@ async def test_connector(connector_id: UUID, ctx: Manager, db: Db) -> dict[str, 
     connector = await _connector(db, connector_id)
     try:
         creds = await connectors.credentials(db, connector.kind, connector.key)
-        await entra.token(creds, fresh=True)
+        await integrations.signin(creds, connector.kind)
     except (LookupError, ValueError, ActionFailed) as error:
         await ctx.audit(db, "connector.test", f"connector:{connector.id}", ok=False)
         raise HTTPException(400, str(error)) from error

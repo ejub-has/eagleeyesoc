@@ -6615,7 +6615,12 @@
           },
           "kind": {
             "type": "string",
-            "const": "entra",
+            "enum": [
+              "entra",
+              "crowdstrike",
+              "google",
+              "slack"
+            ],
             "title": "Kind"
           },
           "name": {
@@ -6665,7 +6670,12 @@
           },
           "kind": {
             "type": "string",
-            "const": "entra",
+            "enum": [
+              "entra",
+              "crowdstrike",
+              "google",
+              "slack"
+            ],
             "title": "Kind"
           },
           "name": {

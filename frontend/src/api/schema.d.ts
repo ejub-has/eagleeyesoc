@@ -1957,9 +1957,9 @@ export interface components {
             key: string;
             /**
              * Kind
-             * @constant
+             * @enum {string}
              */
-            kind: "entra";
+            kind: "entra" | "crowdstrike" | "google" | "slack";
             /** Name */
             name: string;
             /** Settings */
@@ -1980,9 +1980,9 @@ export interface components {
             key: string;
             /**
              * Kind
-             * @constant
+             * @enum {string}
              */
-            kind: "entra";
+            kind: "entra" | "crowdstrike" | "google" | "slack";
             /** Name */
             name: string;
             /** Settings */

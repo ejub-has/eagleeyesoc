@@ -9,6 +9,7 @@ export function NavRail({ slug, isAdmin }: { slug: string; isAdmin: boolean }) {
     ['Cases', '', 'cases'],
     ['Dashboard', 'dashboard', 'dashboard'],
     ['Triage', 'triage', 'triage'],
+    ['Workflows', 'workflows', 'workflows'],
     ['Search', 'search', 'search'],
   ]
   if (isAdmin) items.push(['Settings', 'settings', 'settings'])

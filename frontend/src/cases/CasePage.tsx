@@ -16,6 +16,7 @@ import { PirPanel } from './PirPanel'
 import { RegulatoryPanel } from './RegulatoryPanel'
 import { TasksPanel } from './TasksPanel'
 import { TimelinePanel } from './TimelinePanel'
+import { WorkflowRunsPanel } from '../workflows/WorkflowRunsPanel'
 
 const ASSET_KINDS: AssetKind[] = ['host', 'account', 'application', 'data_set']
 const REPORTS = [
@@ -254,6 +255,14 @@ export function CasePage() {
         canWrite={canWrite}
         canRestrict={permissions.includes('restricted_case')}
         actionsSlot={actionsSlot}
+      />
+
+      <WorkflowRunsPanel
+        slug={slug}
+        number={current.number}
+        members={members.data}
+        canWrite={canWrite}
+        canApprove={permissions.includes('workflows:approve')}
       />
 
       <TasksPanel

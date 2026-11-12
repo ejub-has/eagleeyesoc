@@ -4,6 +4,22 @@ A workflow reacts to incoming alerts: when an alert that matches its trigger arr
 case, the workflow starts a **run** on that case. Each step calls an **action**. A step runs
 automatically, or waits until someone approves it on the case.
 
+## Designer
+
+The **Workflows** tab shows each workflow as a small flow. Opening one shows the designer:
+the trigger at the top, each step as a node joined by arrows, and an exit at the bottom.
+
+- Select the trigger or a step to change it in the side panel.
+- Select **+** on an arrow to add a step at that point; the catalog is grouped by product
+  (Case, Entra ID, Intune, CrowdStrike, Google Workspace, Slack, webhooks).
+- A step that needs approval shows an **Approval** gate on the arrow into it.
+- **Run workflow** starts the saved version on a case by number; **Run log** replays this
+  workflow's recent runs on the same diagram with each step's status, inputs and result.
+- The **⋯** menu explains the workflow in plain language, exports it as JSON, or deletes it
+  (only workflows that have never run; disable the others).
+
+People without `config:manage` can view the diagram and run log but not change them.
+
 ## Trigger
 
 Every part must match (empty parts match anything; text comparisons ignore case):

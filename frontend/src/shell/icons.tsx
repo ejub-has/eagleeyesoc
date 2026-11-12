@@ -14,6 +14,20 @@ const PATHS = {
   collapse: 'M15 6l-6 6 6 6',
   back: 'M19 12H5M11 18l-6-6 6-6',
   close: 'M18 6L6 18M6 6l12 12',
+  bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
+  plus: 'M12 5v14M5 12h14',
+  minus: 'M5 12h14',
+  user: 'M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8zM4 21a8 8 0 0 1 16 0',
+  device: 'M5 5h14v10H5zM2 19h20',
+  note: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5',
+  webhook: 'M10 4a4 4 0 0 1 4 6.5L17 16M7 19a4 4 0 0 1-2.5-7.2L8 6M20 18a4 4 0 0 1-7 1H7',
+  apps: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+  shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
+  gate: 'M12 2.5l9.5 9.5-9.5 9.5L2.5 12zM8.5 12l2.5 2.5 4.5-5',
+  flag: 'M5 21V4h12l-2 4 2 4H5',
+  more: 'M5 12h.01M12 12h.01M19 12h.01',
+  play: 'M7 4l13 8-13 8z',
+  fit: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
 } as const
 
 export type IconName = keyof typeof PATHS

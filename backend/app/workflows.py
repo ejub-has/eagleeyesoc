@@ -326,13 +326,13 @@ async def execute(db: AsyncSession, run: WorkflowRun, step: WorkflowStep, case: 
         step.status, step.error = "failed", str(error)
     except Exception as error:  # an unexpected bug in an action must not wedge the run
         step.status, step.error = "failed", f"unexpected error: {type(error).__name__}"
-    step.finished_at = now()
+    step.finished_at = finished = now()
     await journal.add_event(
         db,
         case,
         actor,
         journal.TimelineIn(
-            occurred_at=step.finished_at,
+            occurred_at=finished,
             source="workflow",
             description=f"{run.workflow_name}: {step.name} {step.status}"
             + (f" ({step.error})" if step.error else ""),

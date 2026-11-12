@@ -139,7 +139,7 @@ async def _decide(
         "workflow.step.approve" if approve else "workflow.step.reject",
         f"workflow_step:{step.id}",
         case=case.number,
-        action=step.action,
+        step_action=step.action,
         reason=reason,
     )
     return await workflows.run_out(db, run, case.number)

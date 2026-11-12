@@ -3189,7 +3189,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/app__regulatory__DecisionIn"
+                "$ref": "#/components/schemas/DecisionIn"
               }
             }
           }
@@ -4499,7 +4499,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/app__workflows__DecisionIn"
+                "$ref": "#/components/schemas/StepDecisionIn"
               }
             }
           }
@@ -4571,7 +4571,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/app__workflows__DecisionIn"
+                "$ref": "#/components/schemas/StepDecisionIn"
               }
             }
           }
@@ -6314,6 +6314,28 @@
         ],
         "title": "CommentOut"
       },
+      "Condition": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "maxLength": 40,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Field"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Value"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "value"
+        ],
+        "title": "Condition"
+      },
       "CustodyAction": {
         "type": "string",
         "enum": [
@@ -6508,6 +6530,39 @@
         ],
         "title": "DashboardOut"
       },
+      "DecisionIn": {
+        "properties": {
+          "material": {
+            "type": "boolean",
+            "title": "Material"
+          },
+          "decided_by": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Decided By"
+          },
+          "decided_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Decided At"
+          },
+          "rationale": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Rationale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "material",
+          "decided_by",
+          "decided_at",
+          "rationale"
+        ],
+        "title": "DecisionIn"
+      },
       "DecisionOut": {
         "properties": {
           "id": {
@@ -6698,7 +6753,7 @@
             "title": "Name"
           },
           "trigger": {
-            "$ref": "#/components/schemas/app__tenant_config__Trigger"
+            "$ref": "#/components/schemas/Trigger"
           },
           "severities": {
             "items": {
@@ -7739,7 +7794,7 @@
           "when": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/app__tenant_config__Condition"
+                "$ref": "#/components/schemas/Condition"
               },
               {
                 "type": "null"
@@ -8458,6 +8513,18 @@
           "name"
         ],
         "title": "State"
+      },
+      "StepDecisionIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Reason",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "StepDecisionIn"
       },
       "StepDef": {
         "properties": {
@@ -9921,6 +9988,18 @@
         ],
         "title": "TransferIn"
       },
+      "Trigger": {
+        "type": "string",
+        "enum": [
+          "case_created",
+          "sla_warning",
+          "sla_breach",
+          "major_incident",
+          "clock_warning",
+          "clock_breach"
+        ],
+        "title": "Trigger"
+      },
       "UploadIn": {
         "properties": {
           "name": {
@@ -10161,6 +10240,37 @@
         ],
         "title": "VerdictOut"
       },
+      "WorkflowCondition": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.\\-\\[\\]]{1,200}$",
+            "title": "Path"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "equals",
+              "contains",
+              "exists"
+            ],
+            "title": "Op",
+            "default": "equals"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Value",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "title": "WorkflowCondition",
+        "description": "A test on one field of the alert, e.g. payload.riskEventType equals passwordSpray."
+      },
       "WorkflowIn": {
         "properties": {
           "name": {
@@ -10181,7 +10291,7 @@
             "default": true
           },
           "trigger": {
-            "$ref": "#/components/schemas/app__workflows__Trigger"
+            "$ref": "#/components/schemas/WorkflowTrigger"
           },
           "steps": {
             "items": {
@@ -10221,7 +10331,7 @@
             "default": true
           },
           "trigger": {
-            "$ref": "#/components/schemas/app__workflows__Trigger"
+            "$ref": "#/components/schemas/WorkflowTrigger"
           },
           "steps": {
             "items": {
@@ -10258,6 +10368,38 @@
         ],
         "title": "WorkflowOut"
       },
+      "WorkflowTrigger": {
+        "properties": {
+          "sources": {
+            "items": {
+              "type": "string",
+              "maxLength": 40
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Sources",
+            "default": []
+          },
+          "title_contains": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title Contains",
+            "default": ""
+          },
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowCondition"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Conditions",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "WorkflowTrigger",
+        "description": "Every part must match; empty parts match anything."
+      },
       "Workload": {
         "properties": {
           "owner_id": {
@@ -10283,148 +10425,6 @@
           "open"
         ],
         "title": "Workload"
-      },
-      "app__regulatory__DecisionIn": {
-        "properties": {
-          "material": {
-            "type": "boolean",
-            "title": "Material"
-          },
-          "decided_by": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Decided By"
-          },
-          "decided_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Decided At"
-          },
-          "rationale": {
-            "type": "string",
-            "maxLength": 10000,
-            "minLength": 1,
-            "title": "Rationale"
-          }
-        },
-        "type": "object",
-        "required": [
-          "material",
-          "decided_by",
-          "decided_at",
-          "rationale"
-        ],
-        "title": "DecisionIn"
-      },
-      "app__tenant_config__Condition": {
-        "properties": {
-          "field": {
-            "type": "string",
-            "maxLength": 40,
-            "pattern": "^[a-z][a-z0-9_]*$",
-            "title": "Field"
-          },
-          "value": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Value"
-          }
-        },
-        "type": "object",
-        "required": [
-          "field",
-          "value"
-        ],
-        "title": "Condition"
-      },
-      "app__tenant_config__Trigger": {
-        "type": "string",
-        "enum": [
-          "case_created",
-          "sla_warning",
-          "sla_breach",
-          "major_incident",
-          "clock_warning",
-          "clock_breach"
-        ],
-        "title": "Trigger"
-      },
-      "app__workflows__Condition": {
-        "properties": {
-          "path": {
-            "type": "string",
-            "pattern": "^[A-Za-z0-9_.\\-\\[\\]]{1,200}$",
-            "title": "Path"
-          },
-          "op": {
-            "type": "string",
-            "enum": [
-              "equals",
-              "contains",
-              "exists"
-            ],
-            "title": "Op",
-            "default": "equals"
-          },
-          "value": {
-            "type": "string",
-            "maxLength": 500,
-            "title": "Value",
-            "default": ""
-          }
-        },
-        "type": "object",
-        "required": [
-          "path"
-        ],
-        "title": "Condition",
-        "description": "A test on one field of the alert, e.g. payload.riskEventType equals passwordSpray."
-      },
-      "app__workflows__DecisionIn": {
-        "properties": {
-          "reason": {
-            "type": "string",
-            "maxLength": 2000,
-            "title": "Reason",
-            "default": ""
-          }
-        },
-        "type": "object",
-        "title": "DecisionIn"
-      },
-      "app__workflows__Trigger": {
-        "properties": {
-          "sources": {
-            "items": {
-              "type": "string",
-              "maxLength": 40
-            },
-            "type": "array",
-            "maxItems": 20,
-            "title": "Sources",
-            "default": []
-          },
-          "title_contains": {
-            "type": "string",
-            "maxLength": 200,
-            "title": "Title Contains",
-            "default": ""
-          },
-          "conditions": {
-            "items": {
-              "$ref": "#/components/schemas/app__workflows__Condition"
-            },
-            "type": "array",
-            "maxItems": 20,
-            "title": "Conditions",
-            "default": []
-          }
-        },
-        "type": "object",
-        "title": "Trigger",
-        "description": "Every part must match; empty parts match anything."
       }
     }
   }

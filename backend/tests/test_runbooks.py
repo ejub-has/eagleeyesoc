@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from app import actions
 from app.jobs import workflows as worker
 from app.models import Alert
-from app.workflows import Trigger, lookup, matches, render
+from app.workflows import WorkflowTrigger, lookup, matches, render
 from tests.conftest import MakeToken, MakeUser, SignedIn, audit_actions
 
 SPRAY = {
@@ -253,9 +253,9 @@ def test_matching_is_case_insensitive_and_needs_every_part() -> None:
         title="Password SPRAY detected",
         payload={"riskEventType": "PasswordSpray", "user": {"upn": "a@b"}},
     )
-    assert matches(Trigger.model_validate(SPRAY["trigger"]), sample)
+    assert matches(WorkflowTrigger.model_validate(SPRAY["trigger"]), sample)
     exists = {"conditions": [{"path": "payload.user.upn", "op": "exists"}]}
-    assert matches(Trigger.model_validate(exists), sample)
-    assert not matches(Trigger(sources=["crowdstrike"]), sample)
+    assert matches(WorkflowTrigger.model_validate(exists), sample)
+    assert not matches(WorkflowTrigger(sources=["crowdstrike"]), sample)
     missing = {"conditions": [{"path": "payload.user.mail", "op": "contains", "value": "a"}]}
-    assert not matches(Trigger.model_validate(missing), sample)
+    assert not matches(WorkflowTrigger.model_validate(missing), sample)

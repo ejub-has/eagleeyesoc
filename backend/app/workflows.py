@@ -29,7 +29,7 @@ TEMPLATE = re.compile(r"\{\{\s*([A-Za-z0-9_.\-\[\]]+)\s*\}\}")
 # --- Definitions --------------------------------------------------------------------------
 
 
-class Condition(BaseModel):
+class WorkflowCondition(BaseModel):
     """A test on one field of the alert, e.g. payload.riskEventType equals passwordSpray."""
 
     path: Path
@@ -37,14 +37,14 @@ class Condition(BaseModel):
     value: Annotated[str, StringConstraints(max_length=500)] = ""
 
 
-class Trigger(BaseModel):
+class WorkflowTrigger(BaseModel):
     """Every part must match; empty parts match anything."""
 
     sources: list[Annotated[str, StringConstraints(max_length=40)]] = Field(
         default=[], max_length=20
     )
     title_contains: Annotated[str, StringConstraints(max_length=200)] = ""
-    conditions: list[Condition] = Field(default=[], max_length=20)
+    conditions: list[WorkflowCondition] = Field(default=[], max_length=20)
 
 
 class StepDef(BaseModel):
@@ -74,7 +74,7 @@ class WorkflowIn(BaseModel):
     name: Name
     description: Annotated[str, StringConstraints(max_length=2000)] = ""
     enabled: bool = True
-    trigger: Trigger
+    trigger: WorkflowTrigger
     steps: list[StepDef] = Field(min_length=1, max_length=30)
 
 
@@ -121,7 +121,7 @@ class RunOut(BaseModel):
     steps: list[StepOut]
 
 
-class DecisionIn(BaseModel):
+class StepDecisionIn(BaseModel):
     reason: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)] = ""
 
 
@@ -185,7 +185,7 @@ def render(template: str, data: dict[str, Any]) -> Any:
     return TEMPLATE.sub(fill, template)
 
 
-def matches(trigger: Trigger, alert: Alert) -> bool:
+def matches(trigger: WorkflowTrigger, alert: Alert) -> bool:
     if trigger.sources and alert.source not in trigger.sources:
         return False
     if trigger.title_contains and trigger.title_contains.lower() not in alert.title.lower():
@@ -360,7 +360,7 @@ async def on_alert(db: AsyncSession, case: Case, alert: Alert, actor: str) -> li
     for workflow in await db.scalars(
         select(Workflow).where(Workflow.enabled.is_(True)).order_by(Workflow.name)
     ):
-        if matches(Trigger.model_validate(workflow.trigger), alert):
+        if matches(WorkflowTrigger.model_validate(workflow.trigger), alert):
             started.append(await start(db, workflow, case, alert, actor))
     return started
 

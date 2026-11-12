@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
@@ -10,6 +10,8 @@ from app.db import Db
 from app.models import Tenant, User
 
 router = APIRouter(prefix="/api", tags=["me"])
+
+Theme = Literal["light", "dark", "system"]
 
 
 class TenantAccess(BaseModel):
@@ -25,6 +27,11 @@ class MeOut(BaseModel):
     email: str | None
     is_platform_admin: bool
     tenants: list[TenantAccess]
+    theme: Theme
+
+
+class Preferences(BaseModel):
+    theme: Theme
 
 
 @router.get("/me")
@@ -43,4 +50,15 @@ async def me(principal: Annotated[Principal, Depends(current_user)], db: Db) -> 
             TenantAccess(slug=t.slug, name=t.name, permissions=sorted(principal.permissions[t.id]))
             for t in tenants
         ],
+        theme=cast(Theme, user.theme),  # the column's CHECK limits it to these values
     )
+
+
+@router.patch("/me/preferences")
+async def update_preferences(
+    body: Preferences, principal: Annotated[Principal, Depends(current_user)], db: Db
+) -> Preferences:
+    """Save the signed-in user's display preferences."""
+    user = await db.get_one(User, principal.user_id)
+    user.theme = body.theme
+    return body

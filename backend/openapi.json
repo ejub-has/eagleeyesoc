@@ -85,6 +85,48 @@
         }
       }
     },
+    "/api/me/preferences": {
+      "patch": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Update Preferences",
+        "description": "Save the signed-in user's display preferences.",
+        "operationId": "update_preferences_api_me_preferences_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Preferences"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preferences"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tenants": {
       "get": {
         "tags": [
@@ -6404,6 +6446,15 @@
             },
             "type": "array",
             "title": "Tenants"
+          },
+          "theme": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark",
+              "system"
+            ],
+            "title": "Theme"
           }
         },
         "type": "object",
@@ -6413,7 +6464,8 @@
           "display_name",
           "email",
           "is_platform_admin",
-          "tenants"
+          "tenants",
+          "theme"
         ],
         "title": "MeOut"
       },
@@ -6988,6 +7040,24 @@
           "title"
         ],
         "title": "PlaybookTask"
+      },
+      "Preferences": {
+        "properties": {
+          "theme": {
+            "type": "string",
+            "enum": [
+              "light",
+              "dark",
+              "system"
+            ],
+            "title": "Theme"
+          }
+        },
+        "type": "object",
+        "required": [
+          "theme"
+        ],
+        "title": "Preferences"
       },
       "PromoteIn": {
         "properties": {

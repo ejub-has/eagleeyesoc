@@ -72,6 +72,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Preferences
+         * @description Save the signed-in user's display preferences.
+         */
+        patch: operations["update_preferences_api_me_preferences_patch"];
+        trace?: never;
+    };
     "/api/tenants": {
         parameters: {
             query?: never;
@@ -2019,6 +2039,11 @@ export interface components {
             is_platform_admin: boolean;
             /** Tenants */
             tenants: components["schemas"]["TenantAccess"][];
+            /**
+             * Theme
+             * @enum {string}
+             */
+            theme: "light" | "dark" | "system";
         };
         /** MemberOut */
         MemberOut: {
@@ -2266,6 +2291,14 @@ export interface components {
              */
             depends_on: string[];
             when?: components["schemas"]["Condition"] | null;
+        };
+        /** Preferences */
+        Preferences: {
+            /**
+             * Theme
+             * @enum {string}
+             */
+            theme: "light" | "dark" | "system";
         };
         /** PromoteIn */
         PromoteIn: {
@@ -3270,6 +3303,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeOut"];
+                };
+            };
+        };
+    };
+    update_preferences_api_me_preferences_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Preferences"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preferences"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

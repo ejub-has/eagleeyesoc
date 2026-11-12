@@ -5,17 +5,20 @@ import { api, describeError, type ActionSpec, type Workflow } from '../api/clien
 import { useMembers } from '../api/queries'
 import { useCaseState } from '../cases/caseNav'
 import { useTenant } from '../tenant'
+import { Icon } from '../shell/icons'
 import { toInput, useCatalog } from './data'
-import { WorkflowEditor } from './WorkflowEditor'
+import { groupIcon, triggerSummary } from './flow'
 import { actorName } from './labels'
+import { WorkflowDesigner } from './WorkflowDesigner'
 
 export function WorkflowsPage() {
   const { slug, permissions } = useTenant()
   const canManage = permissions.includes('config:manage')
+  const canRun = permissions.includes('cases:write')
   const caseState = useCaseState()
   const members = useMembers(slug)
   const queryClient = useQueryClient()
-  const [editing, setEditing] = useState<Workflow | 'new' | null>(null)
+  const [open, setOpen] = useState<Workflow | 'new' | null>(null)
 
   const workflows = useQuery({
     queryKey: ['workflows', slug],
@@ -55,13 +58,18 @@ export function WorkflowsPage() {
     (catalog.data ?? []).map((a) => [a.key, a]),
   )
 
-  if (editing && catalog.data) {
+  if (open && catalog.data) {
     return (
-      <WorkflowEditor
+      <WorkflowDesigner
+        key={open === 'new' ? 'new' : open.id}
         slug={slug}
         catalog={catalog.data}
-        initial={editing === 'new' ? null : editing}
-        onDone={() => setEditing(null)}
+        initial={open === 'new' ? null : open}
+        members={members.data ?? []}
+        caseState={caseState}
+        canManage={canManage}
+        canRun={canRun}
+        onDone={() => setOpen(null)}
       />
     )
   }
@@ -73,7 +81,7 @@ export function WorkflowsPage() {
         {workflows.data && <span className="page-count">{workflows.data.length} runbooks</span>}
         {canManage && (
           <div className="page-tools">
-            <button type="button" className="primary" onClick={() => setEditing('new')}>
+            <button type="button" className="primary" onClick={() => setOpen('new')}>
               New workflow
             </button>
           </div>
@@ -96,28 +104,34 @@ export function WorkflowsPage() {
               </span>
             </div>
             {w.description && <p className="muted">{w.description}</p>}
-            <p className="trigger-summary">
-              <span className="muted">When:</span> {triggerSummary(w)}
-            </p>
-            <ol className="step-summary">
+            <ol className="mini-flow" aria-label={`${w.name} steps`}>
+              <li className="mini-node kind-trigger" title={`When ${triggerSummary(w.trigger)}`}>
+                <Icon name="bolt" size={14} />
+                <span>When {triggerSummary(w.trigger)}</span>
+              </li>
               {w.steps.map((s, i) => (
-                <li key={i}>
-                  {s.name}{' '}
-                  <span className="muted">({actions[s.action]?.label ?? s.action})</span>
-                  {s.mode === 'approval' && <span className="tag">approval</span>}
+                <li key={i} className="mini-node">
+                  {s.mode === 'approval' && (
+                    <span className="mini-gate" title="Needs approval">
+                      <Icon name="gate" size={14} />
+                      <span className="visually-hidden">approval, then</span>
+                    </span>
+                  )}
+                  <Icon name={groupIcon(actions[s.action]?.group)} size={14} />
+                  <span>{s.name}</span>
                 </li>
               ))}
             </ol>
-            {canManage && (
-              <div className="inline-form">
-                <button type="button" onClick={() => setEditing(w)}>
-                  Edit {w.name}
-                </button>
+            <div className="inline-form">
+              <button type="button" onClick={() => setOpen(w)}>
+                {canManage ? `Edit ${w.name}` : `View ${w.name}`}
+              </button>
+              {canManage && (
                 <button type="button" className="ghost" onClick={() => toggle.mutate(w)}>
                   {w.enabled ? 'Disable' : 'Enable'}
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </article>
         ))}
       </div>
@@ -161,15 +175,4 @@ export function WorkflowsPage() {
       )}
     </section>
   )
-}
-
-function triggerSummary(w: Workflow): string {
-  const parts: string[] = []
-  const t = w.trigger
-  if (t.sources?.length) parts.push(`source is ${t.sources.join(' or ')}`)
-  if (t.title_contains) parts.push(`title contains "${t.title_contains}"`)
-  for (const c of t.conditions ?? []) {
-    parts.push(c.op === 'exists' ? `${c.path} exists` : `${c.path} ${c.op} "${c.value}"`)
-  }
-  return parts.length ? parts.join(', and ') : 'any alert'
 }

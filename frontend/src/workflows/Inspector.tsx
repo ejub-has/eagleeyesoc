@@ -60,10 +60,13 @@ export function TriggerPanel({
         <input
           value={sources}
           placeholder="entra_id_protection, crowdstrike"
+          aria-describedby="sources-hint"
           onChange={(e) => onSources(e.target.value)}
         />
-        <span className="hint">Comma-separated; leave empty for any source.</span>
       </label>
+      <span id="sources-hint" className="hint">
+        Comma-separated; leave empty for any source.
+      </span>
       <label>
         Alert title contains
         <input

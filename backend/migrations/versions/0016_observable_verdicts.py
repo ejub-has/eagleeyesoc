@@ -16,8 +16,6 @@ down_revision: str | None = "0015"
 branch_labels: str | None = None
 depends_on: str | None = None
 
-COLUMNS = "verdict, confidence, verdict_expires_at, verdict_note, verdict_by, verdict_at"
-
 
 def upgrade() -> None:
     op.execute(
@@ -33,11 +31,17 @@ def upgrade() -> None:
         """
     )
     # Only the verdict columns become writable; type and value stay insert-only.
-    op.execute(f"GRANT UPDATE ({COLUMNS}) ON observables TO casemgr_app")
+    op.execute(
+        "GRANT UPDATE (verdict, confidence, verdict_expires_at, verdict_note, verdict_by, "
+        "verdict_at) ON observables TO casemgr_app"
+    )
 
 
 def downgrade() -> None:
-    op.execute(f"REVOKE UPDATE ({COLUMNS}) ON observables FROM casemgr_app")
+    op.execute(
+        "REVOKE UPDATE (verdict, confidence, verdict_expires_at, verdict_note, verdict_by, "
+        "verdict_at) ON observables FROM casemgr_app"
+    )
     op.execute(
         "ALTER TABLE observables DROP COLUMN verdict, DROP COLUMN confidence, "
         "DROP COLUMN verdict_expires_at, DROP COLUMN verdict_note, DROP COLUMN verdict_by, "

@@ -99,5 +99,6 @@ async def set_verdict(
     found = await observable_store.page(
         db, observable_id, "restricted_case" in ctx.permissions, now
     )
-    assert found is not None
+    if found is None:  # unreachable: the observable was just read in this transaction
+        raise HTTPException(404, "Observable not found")
     return found

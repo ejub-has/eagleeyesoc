@@ -3,6 +3,7 @@ const PATHS = {
   dashboard: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z',
   cases: 'M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
   triage: 'M4 5h16l-6 7v6l-4 2v-8z',
+  workflows: 'M4 4h6v6H4zM14 14h6v6h-6zM7 10v4a3 3 0 0 0 3 3h4M17 14V7a3 3 0 0 0-3-3h-4',
   search: 'M11 5a6 6 0 1 0 0 12a6 6 0 1 0 0-12zM16 16l4 4',
   settings: 'M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4',
   light:

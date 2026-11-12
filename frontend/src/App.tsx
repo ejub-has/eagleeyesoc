@@ -21,6 +21,7 @@ import { Settings } from './settings/Settings'
 import { Logo } from './shell/icons'
 import { NavRail } from './shell/NavRail'
 import { ThemeSwitch } from './shell/ThemeSwitch'
+import { WorkflowsPage } from './workflows/WorkflowsPage'
 
 const TENANT_KEY = 'casemgr.tenant'
 
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="search" element={<SearchPage />} />
           <Route path="triage" element={<TriagePage />} />
+          <Route path="workflows" element={<WorkflowsPage />} />
           <Route path="observables/:observableId" element={<ObservablePage />} />
           <Route path="settings" element={<Settings />} />
         </Route>

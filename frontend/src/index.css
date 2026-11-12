@@ -1332,3 +1332,126 @@ h2 .pill {
   flex: 1;
   min-width: 14rem;
 }
+
+/* Workflows */
+
+.section-title {
+  margin: 2rem 0 1rem;
+}
+
+.workflow-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.workflow-card h3 {
+  margin: 0;
+}
+
+.trigger-summary {
+  margin: 0.5rem 0;
+}
+
+.step-summary,
+.steps,
+.step-editor {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.step-summary .tag,
+.step-head .tag {
+  margin-left: 0.4rem;
+}
+
+.step-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-left: 0;
+  list-style: none;
+}
+
+.step-editor .inline-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.workflow-editor fieldset {
+  margin-bottom: 1rem;
+}
+
+.run {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.run-head,
+.step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.steps li {
+  padding: 0.4rem 0;
+}
+
+.step-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0.3rem 0;
+  font-size: 0.85rem;
+}
+
+.step-detail dt {
+  color: var(--muted);
+}
+
+.step-detail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.step-error {
+  margin: 0.25rem 0;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.pill.run-succeeded,
+.pill.step-succeeded {
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.pill.run-waiting,
+.pill.step-awaiting_approval {
+  background: var(--sev-medium-bg);
+  color: var(--sev-medium-fg);
+}
+
+.pill.run-running,
+.pill.step-queued,
+.pill.step-running {
+  background: var(--sev-low-bg);
+  color: var(--sev-low-fg);
+}
+
+.pill.run-failed,
+.pill.step-failed,
+.pill.step-rejected {
+  background: var(--sev-critical-bg);
+  color: var(--sev-critical-fg);
+}
+
+.pill.run-cancelled,
+.pill.step-skipped,
+.pill.step-pending {
+  color: var(--muted);
+}

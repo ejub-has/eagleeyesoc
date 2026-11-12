@@ -25,7 +25,7 @@ test('adds an Entra ID connector with its secret', async () => {
     [`POST ${BASE}`]: () => json(ENTRA, 201),
   })
   renderWithQuery(<ConnectorsPanel slug="dr" />)
-  fireEvent.click(await screen.findByRole('button', { name: 'Add Entra ID connector' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Add connector' }))
   fireEvent.change(screen.getByLabelText('Directory (tenant) ID'), {
     target: { value: ENTRA.settings.directory_id },
   })
@@ -38,7 +38,7 @@ test('adds an Entra ID connector with its secret', async () => {
   expect(await requests.find((r) => r.method === 'POST')!.json()).toEqual({
     key: 'entra',
     kind: 'entra',
-    name: 'Entra ID',
+    name: 'Entra ID and Intune (Microsoft Graph)',
     settings: ENTRA.settings,
     secret: 'shh',
   })
@@ -58,4 +58,24 @@ test('tests a connector and keeps the secret when editing without one', async ()
   await vi.waitFor(() => expect(requests.some((r) => r.method === 'PUT')).toBe(true))
   const body = (await requests.find((r) => r.method === 'PUT')!.json()) as { secret: string | null }
   expect(body.secret).toBeNull()
+})
+
+test('adds a CrowdStrike connector with its cloud', async () => {
+  const requests = mockApi({
+    [`GET ${BASE}`]: () => json([]),
+    [`POST ${BASE}`]: () => json({ ...ENTRA, kind: 'crowdstrike' }, 201),
+  })
+  renderWithQuery(<ConnectorsPanel slug="dr" />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Add connector' }))
+  fireEvent.change(screen.getByLabelText('Service'), { target: { value: 'crowdstrike' } })
+  fireEvent.change(screen.getByLabelText('Cloud'), { target: { value: 'eu-1' } })
+  fireEvent.change(screen.getByLabelText('API client ID'), { target: { value: 'a'.repeat(32) } })
+  fireEvent.change(screen.getByLabelText('Client secret'), { target: { value: 'shh' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save connector' }))
+  await vi.waitFor(() => expect(requests.some((r) => r.method === 'POST')).toBe(true))
+  expect(await requests.find((r) => r.method === 'POST')!.json()).toMatchObject({
+    key: 'crowdstrike',
+    kind: 'crowdstrike',
+    settings: { cloud: 'eu-1', client_id: 'a'.repeat(32) },
+  })
 })

@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models import Connector
 
-Kind = Literal["entra"]
+Kind = Literal["entra", "crowdstrike", "google", "slack"]
 Key = Annotated[str, StringConstraints(pattern=r"^[a-z0-9][a-z0-9_-]{0,39}$")]
 Guid = Annotated[
     str,
@@ -40,7 +40,36 @@ class EntraSettings(BaseModel):
     client_id: Guid  # the app registration's application (client) ID
 
 
-SETTINGS: dict[str, type[BaseModel]] = {"entra": EntraSettings}
+class CrowdStrikeSettings(BaseModel):
+    """A Falcon API client with the Hosts scope (read and write)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    cloud: Literal["us-1", "us-2", "eu-1", "us-gov-1"]
+    client_id: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
+
+
+class GoogleSettings(BaseModel):
+    """A service account with domain-wide delegation, acting as a Workspace admin."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    client_email: Annotated[str, StringConstraints(pattern=r"^[^@\s]+@[^@\s]+$")]
+    admin_subject: Annotated[str, StringConstraints(pattern=r"^[^@\s]+@[^@\s]+$")]
+
+
+class SlackSettings(BaseModel):
+    """An org admin's user token; nothing else to configure."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+SETTINGS: dict[str, type[BaseModel]] = {
+    "entra": EntraSettings,
+    "crowdstrike": CrowdStrikeSettings,
+    "google": GoogleSettings,
+    "slack": SlackSettings,
+}
 
 
 class ConnectorIn(BaseModel):

@@ -2,6 +2,28 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { api, describeError, type ConnectorOut } from '../api/client'
 
+type Kind = ConnectorOut['kind']
+
+const KINDS: Record<Kind, { label: string; secret: string; multiline?: boolean }> = {
+  entra: { label: 'Entra ID and Intune (Microsoft Graph)', secret: 'Client secret' },
+  crowdstrike: { label: 'CrowdStrike Falcon', secret: 'Client secret' },
+  google: { label: 'Google Workspace', secret: 'Private key (PEM)', multiline: true },
+  slack: { label: 'Slack (Enterprise Grid)', secret: 'User token (xoxp-)' },
+}
+
+const FIELDS: Record<Kind, [string, string][]> = {
+  entra: [
+    ['directory_id', 'Directory (tenant) ID'],
+    ['client_id', 'Application (client) ID'],
+  ],
+  crowdstrike: [['client_id', 'API client ID']],
+  google: [
+    ['client_email', 'Service account email'],
+    ['admin_subject', 'Admin to act as (email)'],
+  ],
+  slack: [],
+}
+
 /** Credentials for services that workflow actions call. Secrets are write-only. */
 export function ConnectorsPanel({ slug }: { slug: string }) {
   const queryClient = useQueryClient()
@@ -67,7 +89,7 @@ export function ConnectorsPanel({ slug }: { slug: string }) {
                   <code>{c.key}</code>
                 </td>
                 <td>{c.name}</td>
-                <td>{c.kind === 'entra' ? 'Entra ID (Microsoft Graph)' : c.kind}</td>
+                <td>{KINDS[c.kind].label}</td>
                 <td className="muted">
                   {c.secret_set_at ? `set ${new Date(c.secret_set_at).toLocaleDateString()}` : 'missing'}
                 </td>
@@ -102,7 +124,7 @@ export function ConnectorsPanel({ slug }: { slug: string }) {
         />
       ) : (
         <button type="button" onClick={() => setEditing('new')}>
-          Add Entra ID connector
+          Add connector
         </button>
       )}
     </section>
@@ -118,17 +140,19 @@ function ConnectorForm({
   initial: ConnectorOut | null
   onDone: () => void
 }) {
+  const [kind, setKind] = useState<Kind>(initial?.kind ?? 'entra')
   const save = useMutation({
     mutationFn: async (form: FormData) => {
       const secret = String(form.get('secret') ?? '')
+      const settings: Record<string, string> = Object.fromEntries(
+        FIELDS[kind].map(([name]) => [name, String(form.get(name) ?? '').trim()]),
+      )
+      if (kind === 'crowdstrike') settings.cloud = String(form.get('cloud'))
       const body = {
         key: initial?.key ?? String(form.get('key')),
-        kind: 'entra' as const,
+        kind,
         name: String(form.get('name')),
-        settings: {
-          directory_id: String(form.get('directory_id')).trim(),
-          client_id: String(form.get('client_id')).trim(),
-        },
+        settings,
         secret: secret || null,
       }
       const { error, response } = initial
@@ -139,7 +163,9 @@ function ConnectorForm({
         : await api.POST('/api/tenants/{slug}/connectors', { params: { path: { slug } }, body })
       if (!response.ok) {
         throw new Error(
-          response.status === 409 ? 'A connector with this key already exists' : describeError(error, response.status),
+          response.status === 409
+            ? 'A connector with this key already exists'
+            : describeError(error, response.status),
         )
       }
     },
@@ -151,34 +177,65 @@ function ConnectorForm({
     save.mutate(new FormData(event.currentTarget))
   }
 
-  const settings = (initial?.settings ?? {}) as { directory_id?: string; client_id?: string }
+  const settings = (initial?.settings ?? {}) as Record<string, string | undefined>
+  const secretLabel = KINDS[kind].secret + (initial ? ' (leave empty to keep)' : '')
   return (
-    <form className="case-grid" onSubmit={onSubmit} aria-label="Entra ID connector" autoComplete="off">
+    <form className="case-grid" onSubmit={onSubmit} aria-label="Connector" autoComplete="off">
+      <label>
+        Service
+        <select value={kind} disabled={!!initial} onChange={(e) => setKind(e.target.value as Kind)}>
+          {(Object.keys(KINDS) as Kind[]).map((k) => (
+            <option key={k} value={k}>
+              {KINDS[k].label}
+            </option>
+          ))}
+        </select>
+      </label>
       <label>
         Key
         <input
+          key={kind}
           name="key"
           required
           pattern="[a-z0-9][a-z0-9_\-]{0,39}"
-          defaultValue={initial?.key ?? 'entra'}
+          defaultValue={initial?.key ?? kind}
           disabled={!!initial}
         />
       </label>
       <label>
         Name
-        <input name="name" required maxLength={120} defaultValue={initial?.name ?? 'Entra ID'} />
+        <input
+          key={`name-${kind}`}
+          name="name"
+          required
+          maxLength={120}
+          defaultValue={initial?.name ?? KINDS[kind].label}
+        />
       </label>
-      <label>
-        Directory (tenant) ID
-        <input name="directory_id" required defaultValue={settings.directory_id ?? ''} />
-      </label>
-      <label>
-        Application (client) ID
-        <input name="client_id" required defaultValue={settings.client_id ?? ''} />
-      </label>
-      <label>
-        Client secret{initial && ' (leave empty to keep)'}
-        <input name="secret" type="password" required={!initial} autoComplete="new-password" />
+      {kind === 'crowdstrike' && (
+        <label>
+          Cloud
+          <select name="cloud" defaultValue={settings.cloud ?? 'us-2'}>
+            <option value="us-1">US-1</option>
+            <option value="us-2">US-2</option>
+            <option value="eu-1">EU-1</option>
+            <option value="us-gov-1">US-GOV-1</option>
+          </select>
+        </label>
+      )}
+      {FIELDS[kind].map(([name, label]) => (
+        <label key={name}>
+          {label}
+          <input name={name} required defaultValue={settings[name] ?? ''} />
+        </label>
+      ))}
+      <label className={KINDS[kind].multiline ? 'wide' : undefined}>
+        {secretLabel}
+        {KINDS[kind].multiline ? (
+          <textarea name="secret" rows={4} required={!initial} spellCheck={false} />
+        ) : (
+          <input name="secret" type="password" required={!initial} autoComplete="new-password" />
+        )}
       </label>
       <div className="save-bar wide">
         <button type="submit" disabled={save.isPending}>

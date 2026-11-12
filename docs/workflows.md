@@ -47,8 +47,16 @@ the audit log.
 | Entra ID: revoke sign-in sessions | Change | Ends Microsoft 365 (Teams, Outlook) and other Entra sessions |
 | Entra ID: disable or enable a user | Change | |
 | Entra ID: confirm user compromised | Change | Entra ID Protection risk becomes high |
+| Entra ID: disable a device | Change | By device name or object ID |
+| Intune: retire a device | Change | Removes company data and management; personal data stays |
+| Intune: lock a device | Change | Remote screen lock |
+| CrowdStrike: contain a host / lift containment | Change | By Falcon host ID (aid) or hostname |
+| Google Workspace: sign a user out | Change | Ends web and device sessions (Gmail, Drive) |
+| Google Workspace: revoke app tokens | Change | Every third-party OAuth token the user granted |
+| Google Workspace: suspend a user | Change | |
+| Slack: reset sessions | Change | Signs the user out everywhere (Enterprise Grid admin API) |
 
-Intune, CrowdStrike, Google Workspace and Slack actions follow (see `PLAN.md`).
+A device or user name that matches several objects fails the step and asks for the ID.
 
 ## Connectors
 
@@ -75,6 +83,32 @@ Use a test directory first, never production while you try runbooks out.
 
 Graph refuses changes to administrator accounts unless the app also holds a privileged
 directory role; keep runbooks for regular users.
+
+Intune and device actions use the same connector with `Device.ReadWrite.All` (disable a
+device) and `DeviceManagementManagedDevices.Read.All` plus
+`DeviceManagementManagedDevices.PrivilegedOperations.All` (retire, lock).
+
+### CrowdStrike Falcon
+
+Falcon console > Support and resources > API clients and keys > Add new API client with the
+**Hosts** scope (read and write). Add a CrowdStrike connector with your cloud (US-1, US-2,
+EU-1, US-GOV-1), the client ID and the secret.
+
+### Google Workspace
+
+1. Google Cloud console: create a service account (no roles needed) and a JSON key.
+2. Admin console > Security > Access and data control > API controls > Domain-wide
+   delegation: add the service account's client ID with the scopes
+   `https://www.googleapis.com/auth/admin.directory.user` and
+   `https://www.googleapis.com/auth/admin.directory.user.security`.
+3. Add a Google Workspace connector: the service account email, the admin it acts as (a
+   user with the User Management admin privilege), and the key's `private_key` value (PEM).
+
+### Slack (Enterprise Grid)
+
+Create a Slack app installed on the org with user scopes `admin.users:write` and
+`users:read.email`, installed by an org admin or owner. Add a Slack connector with the
+user token (`xoxp-`).
 
 ## Running
 

@@ -3,7 +3,9 @@
 Graph application permissions the app needs (admin consent in the Entra tenant):
 User.Read.All (look up), User.ReadWrite.All (disable or enable),
 User-PasswordProfile.ReadWrite.All (require a password change), User.RevokeSessions.All
-(revoke sessions), IdentityRiskyUser.ReadWrite.All (confirm compromised).
+(revoke sessions), IdentityRiskyUser.ReadWrite.All (confirm compromised),
+Device.ReadWrite.All (disable a device), DeviceManagementManagedDevices.Read.All and
+DeviceManagementManagedDevices.PrivilegedOperations.All (Intune retire and remote lock).
 """
 
 import re
@@ -11,35 +13,20 @@ import time
 from typing import Any
 from urllib.parse import quote
 
-import httpx2
-
 from app import actions, connectors
 from app.actions import ActionContext, ActionFailed, InputSpec, action
+from app.integrations.http import odata_quote, send
 
 LOGIN = "https://login.microsoftonline.com"
 GRAPH = "https://graph.microsoft.com/v1.0"
+GUID = re.compile(r"^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$")
+DEVICE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._ -]{0,62}$")
 USER = re.compile(
     r"^([A-Za-z0-9._%+'#-]+@[A-Za-z0-9.-]+|[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})$"
 )
 
 # Access tokens per (directory, client), reused until a minute before they expire.
 _tokens: dict[tuple[str, str], tuple[str, float]] = {}
-
-
-async def send(
-    method: str, url: str, *, headers: dict[str, str] | None = None, **kwargs: Any
-) -> tuple[int, dict[str, Any]]:
-    """One HTTP call; returns the status and the JSON body (empty when there is none)."""
-    async with httpx2.AsyncClient(timeout=actions.REQUEST_TIMEOUT) as client:
-        try:
-            response = await client.request(method, url, headers=headers, **kwargs)
-        except httpx2.HTTPError as error:
-            raise ActionFailed(f"Microsoft Graph unreachable: {type(error).__name__}") from error
-    try:
-        body = response.json() if response.content else {}
-    except ValueError:
-        body = {}
-    return response.status_code, body if isinstance(body, dict) else {}
 
 
 async def token(creds: connectors.Credentials, fresh: bool = False) -> str:
@@ -192,3 +179,88 @@ async def confirm_compromised(ctx: ActionContext, inputs: dict[str, Any]) -> dic
     body = {"userIds": [user["id"]]}
     await graph(ctx, inputs, "POST", "/identityProtection/riskyUsers/confirmCompromised", body)
     return {"user_id": user["id"], "confirmed_compromised": True}
+
+
+# --- Devices ------------------------------------------------------------------------------
+
+DEVICE_INPUT = InputSpec(
+    name="device",
+    label="Device",
+    help="device name or ID, e.g. {{alert.payload.deviceName}}",
+)
+
+
+def device_ref(inputs: dict[str, Any]) -> str:
+    device = actions.text(inputs, "device").strip()
+    if not (GUID.fullmatch(device) or DEVICE_NAME.fullmatch(device)):
+        raise ActionFailed("device must be a device name or an ID")
+    return device
+
+
+async def _one(ctx: ActionContext, inputs: dict[str, Any], path: str, name: str) -> str:
+    """The ID of the only item a name filter finds."""
+    found = await graph(ctx, inputs, "GET", path)
+    items = found.get("value", [])
+    if len(items) != 1:
+        raise ActionFailed(f"{len(items)} devices are named {name}; use the device ID")
+    return str(items[0]["id"])
+
+
+@action(
+    "entra.disable_device",
+    "Disable a device",
+    "Disables the device object in Entra ID, so it can no longer be used to sign in.",
+    "Entra ID",
+    "change",
+    [DEVICE_INPUT],
+    connector="entra",
+)
+async def disable_device(ctx: ActionContext, inputs: dict[str, Any]) -> dict[str, Any]:
+    device = device_ref(inputs)
+    if not GUID.fullmatch(device):
+        query = f"/devices?$filter=displayName eq {quote(odata_quote(device))}&$select=id"
+        device = await _one(ctx, inputs, query, device)
+    await graph(ctx, inputs, "PATCH", f"/devices/{device}", {"accountEnabled": False})
+    return {"device_id": device, "account_enabled": False}
+
+
+async def _managed(ctx: ActionContext, inputs: dict[str, Any]) -> str:
+    device = device_ref(inputs)
+    if GUID.fullmatch(device):
+        return device
+    query = (
+        "/deviceManagement/managedDevices"
+        f"?$filter=deviceName eq {quote(odata_quote(device))}&$select=id"
+    )
+    return await _one(ctx, inputs, query, device)
+
+
+@action(
+    "intune.retire_device",
+    "Retire a device (Intune)",
+    "Removes company data, apps and profiles from an Intune-managed device and stops "
+    "managing it. Personal data stays.",
+    "Intune",
+    "change",
+    [DEVICE_INPUT],
+    connector="entra",
+)
+async def retire_device(ctx: ActionContext, inputs: dict[str, Any]) -> dict[str, Any]:
+    device = await _managed(ctx, inputs)
+    await graph(ctx, inputs, "POST", f"/deviceManagement/managedDevices/{device}/retire")
+    return {"managed_device_id": device, "retired": True}
+
+
+@action(
+    "intune.remote_lock",
+    "Lock a device (Intune)",
+    "Locks an Intune-managed device's screen remotely.",
+    "Intune",
+    "change",
+    [DEVICE_INPUT],
+    connector="entra",
+)
+async def remote_lock(ctx: ActionContext, inputs: dict[str, Any]) -> dict[str, Any]:
+    device = await _managed(ctx, inputs)
+    await graph(ctx, inputs, "POST", f"/deviceManagement/managedDevices/{device}/remoteLock")
+    return {"managed_device_id": device, "locked": True}
